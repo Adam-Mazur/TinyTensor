@@ -334,7 +334,7 @@ Tensor<T> Tensor<T>::view(const std::vector<int> &size)
         }
     }
     int num_of_elements = 1;
-    int data_size = data->size();
+    int data_size = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
     bool full = true;
     for (int i = 0; i < size.size(); i++)
     {
@@ -1456,7 +1456,7 @@ Tensor<T> Tensor<T>::mm(Tensor &t1, Tensor &t2, Tensor *out)
             }
         }
     }
-    if (new_tensor.grad != nullptr)
+    if (out == nullptr && new_tensor.grad != nullptr)
     {
         new_tensor._backward = &Tensor<T>::mm_backward;
         new_tensor.operand1 = &t1;
@@ -1535,6 +1535,7 @@ Tensor<T>& Tensor<T>::operator+=(Tensor<T> &other)
             if (indices[j] == this->shape[j] && j == 0)
             {
                 run = false;
+                break;
             }
             else if (indices[j] == this->shape[j])
             {
@@ -1549,6 +1550,144 @@ Tensor<T>& Tensor<T>::operator+=(Tensor<T> &other)
         }
     }
     return *this;
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
+{
+    std::vector<int> t1_shape(t1.shape.begin(), t1.shape.end());
+    std::vector<int> t2_shape(t2.shape.begin(), t2.shape.end());
+    bool append_one = false;
+    bool prepend_one = false;
+    if (t1_shape.size() == 1)
+    {
+        prepend_one = true;
+        t1_shape.insert(t1_shape.begin(), 1);
+    }
+    if (t2_shape.size() == 1)
+    {
+        append_one = true;
+        t2_shape.push_back(1);
+    }
+
+    if (t1_shape.size() < t2_shape.size())
+    {
+        std::vector<size_t> padding(t2_shape.size() - t1_shape.size(), 1);
+        t1_shape.insert(t1_shape.begin(), padding.begin(), padding.end());
+    }
+    else if (t2_shape.size() < t1_shape.size())
+    {
+        std::vector<size_t> padding(t1_shape.size() - t2_shape.size(), 1);
+        t2_shape.insert(t2_shape.begin(), padding.begin(), padding.end());
+    }
+
+    std::vector<size_t> new_shape(t1_shape.size());
+    for (int i = 0; i < t1_shape.size() - 2; i++)
+    {
+        if (t1_shape[i] == 1 || t2_shape[i] == 1)
+        {
+            new_shape[i] = t1_shape[i] * t2_shape[i];
+            continue;
+        }
+        if (t1_shape[i] != t2_shape[i])
+        {
+            throw std::invalid_argument("Those shapes are not broadcastable.");
+        }
+        new_shape[i] = t1_shape[i];
+    }
+    new_shape[new_shape.size() - 2] = t1_shape[t1_shape.size() - 2];
+    new_shape[new_shape.size() - 1] = t2_shape[t2_shape.size() - 1];
+    
+    Tensor<T> new_tensor = Tensor<T>::zeros(new_shape, t1.grad != nullptr || t2.grad != nullptr);
+    Tensor<T> op1 = t1.view(t1_shape);
+    Tensor<T> op2 = t2.view(t2_shape);
+
+    if (new_shape.size() == 2)
+    {
+        new_tensor = Tensor<T>::mm(op1, op2);
+    }
+    else {
+        int n_dim = t1_shape.size();
+        int n = t1_shape[n_dim - 2];
+        int m = t1_shape[n_dim - 1];
+        int p = t2_shape[n_dim - 1];
+
+        std::vector<int> strides1(op1.strides.begin(), op1.strides.end() - 2);
+        std::vector<int> strides2(op2.strides.begin(), op2.strides.end() - 2);
+        std::vector<int> strides_out(new_tensor.strides.begin(), new_tensor.strides.end() - 2);
+
+        for (int i = 0; i < n_dim - 2; i++)
+        {
+            if (op1.shape[i] == 1)
+            {
+                strides1[i] = 0;
+            }
+            if (op2.shape[i] == 1)
+            {
+                strides2[i] = 0;
+            }
+        }
+        
+        Tensor<T> out = new_tensor;
+
+        op1.shape = std::vector<size_t>({static_cast<size_t>(n), static_cast<size_t>(m)});
+        op2.shape = std::vector<size_t>({static_cast<size_t>(m), static_cast<size_t>(p)});
+        out.shape = std::vector<size_t>({static_cast<size_t>(n), static_cast<size_t>(p)});
+
+        op1.strides = {op1.strides[n_dim - 2], op1.strides[n_dim - 1]};
+        op2.strides = {op2.strides[n_dim - 2], op2.strides[n_dim - 1]};
+        out.strides = {out.strides[n_dim - 2], out.strides[n_dim - 1]};
+
+        int offset1 = op1.offset;
+        int offset2 = op2.offset;
+        int offset_out = out.offset;
+
+        std::vector<int> indices(n_dim - 2, 0);
+        bool run = true;
+        while (run)
+        {
+            op1.offset = offset1;
+            op2.offset = offset2;
+            out.offset = offset_out;
+            Tensor<T>::mm(op1, op2, &out);
+            for (int j = indices.size() - 1; j >= 0; j--)
+            {
+                indices[j]++;
+                offset1 += strides1[j];
+                offset2 += strides2[j];
+                offset_out += strides_out[j];
+                if (indices[j] == new_shape[j] && j == 0)
+                {
+                    run = false;
+                    break;
+                }
+                else if (indices[j] == new_shape[j])
+                {
+                    indices[j] = 0;
+                    offset1 -= t1_shape[j] * strides1[j];
+                    offset2 -= t2_shape[j] * strides2[j];
+                    offset_out -= new_shape[j] * strides_out[j];
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+    }    
+    if (append_one)
+    {
+        std::vector<int> new_shape2(new_shape.begin(), new_shape.end());
+        new_shape2.pop_back();
+        new_tensor = new_tensor.view(new_shape2);
+    }
+    else if (prepend_one)
+    {
+        std::vector<int> new_shape2(new_shape.begin(), new_shape.end());
+        new_shape2.erase(new_shape2.begin() + new_shape2.size() - 2);
+        new_tensor = new_tensor.view(new_shape2);
+    }
+    return new_tensor;
 }
 
 template <typename T>

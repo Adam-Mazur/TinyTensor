@@ -168,6 +168,8 @@ class Tensor
 
     static Tensor mm(Tensor &t1, Tensor &t2, Tensor *out = nullptr);
 
+    static Tensor matmul(Tensor &t1, Tensor &t2);
+
     ~Tensor();
 };
 

@@ -2283,3 +2283,95 @@ TEST_CASE("Autograd works for view method")
         }
     }
 }
+
+TEST_CASE("The matmul method works correctly")
+{
+    SECTION("Vector x Matrix product")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3});
+        Tensor<float> t2 = Tensor<float>({4, 5, 6, 7, 8, 9}).view({3, 2});
+        Tensor<float> result = Tensor<float>::matmul(t1, t2);
+        REQUIRE(result.size() == std::vector<size_t>({2}));
+        REQUIRE(result[{0}] == 40);
+        REQUIRE(result[{1}] == 46);
+    }
+
+    SECTION("Matrix x Vector product")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6}).view({2, 3});
+        Tensor<float> t2 = Tensor<float>({7, 8, 9});
+        Tensor<float> result = Tensor<float>::matmul(t1, t2);
+        REQUIRE(result.size() == std::vector<size_t>({2}));
+        REQUIRE(result[{0}] == 50);
+        REQUIRE(result[{1}] == 122);
+    }
+
+    SECTION("Vector x Vector product")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3});
+        Tensor<float> t2 = Tensor<float>({4, 5, 6});
+        Tensor<float> result = Tensor<float>::matmul(t1, t2);
+        REQUIRE(result.size() == std::vector<size_t>({1}));
+        REQUIRE(result[{0}] == 32);
+    }
+
+    SECTION("Matrix x Matrix product")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6}).view({2, 3});
+        Tensor<float> t2 = Tensor<float>({7, 8, 9, 10, 11, 12}).view({3, 2});
+        Tensor<float> result = Tensor<float>::matmul(t1, t2);
+        REQUIRE(result.size() == std::vector<size_t>({2, 2}));
+        REQUIRE(result[{0, 0}] == 58);
+        REQUIRE(result[{0, 1}] == 64);
+        REQUIRE(result[{1, 0}] == 139);
+        REQUIRE(result[{1, 1}] == 154);
+    }
+
+    SECTION("Batched multiply for matrices")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({2, 2, 3});
+        Tensor<float> t2 = Tensor<float>({13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24}).view({2, 3, 2});
+        Tensor<float> result = Tensor<float>::matmul(t1, t2);
+        REQUIRE(result.size() == std::vector<size_t>({2, 2, 2}));
+        REQUIRE(result[{0, 0, 0}] == 94);
+        REQUIRE(result[{0, 0, 1}] == 100);
+        REQUIRE(result[{0, 1, 0}] == 229);
+        REQUIRE(result[{0, 1, 1}] == 244);
+        REQUIRE(result[{1, 0, 0}] == 508);
+        REQUIRE(result[{1, 0, 1}] == 532);
+        REQUIRE(result[{1, 1, 0}] == 697);
+        REQUIRE(result[{1, 1, 1}] == 730);
+    }
+
+    SECTION("Batched matrix x Vector product")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({2, 2, 3});
+        Tensor<float> t2 = Tensor<float>({13, 14, 15});
+        Tensor<float> result = Tensor<float>::matmul(t1, t2);
+        REQUIRE(result.size() == std::vector<size_t>({2, 2}));
+        REQUIRE(result[{0, 0}] == 86);
+        REQUIRE(result[{0, 1}] == 212);
+        REQUIRE(result[{1, 0}] == 338);
+        REQUIRE(result[{1, 1}] == 464);
+    }
+
+    SECTION("Vector x Batched matrix product")
+    {
+        Tensor<float> t1 = Tensor<float>({13, 14, 15});
+        Tensor<float> t2 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({2, 3, 2});
+        Tensor<float> result = Tensor<float>::matmul(t1, t2);
+        REQUIRE(result.size() == std::vector<size_t>({2, 2}));
+        REQUIRE(result[{0, 0}] == 130);
+        REQUIRE(result[{0, 1}] == 172);
+        REQUIRE(result[{1, 0}] == 382);
+        REQUIRE(result[{1, 1}] == 424);
+    }
+
+    SECTION("Matrix multiplication for tensors with dimensions > 4")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({2, 3, 1, 5, 5});
+        Tensor<float> t2 = Tensor<float>::ones({2, 1, 4, 5, 5});
+        Tensor<float> result = Tensor<float>::matmul(t1, t2);
+        REQUIRE(result.size() == std::vector<size_t>({2, 3, 4, 5, 5}));
+    }
+}
