@@ -2110,4 +2110,22 @@ TEST_CASE("The mm method works correctly")
             }
         }
     }
+
+    SECTION("Matrix multiplication for 3 x 3 matrices with an out matrix")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9}).view({3, 3});
+        Tensor<float> t2 = Tensor<float>({9, 8, 7, 6, 5, 4, 3, 2, 1}).view({3, 3});
+        Tensor<float> *out = new Tensor<float>(Tensor<float>::zeros({3, 3}));
+        Tensor<float>::mm(t1, t2, out);
+        REQUIRE(out->size() == std::vector<size_t>({3, 3}));
+        REQUIRE((*out)[{0, 0}] == 30);
+        REQUIRE((*out)[{0, 1}] == 24);
+        REQUIRE((*out)[{0, 2}] == 18);
+        REQUIRE((*out)[{1, 0}] == 84);
+        REQUIRE((*out)[{1, 1}] == 69);
+        REQUIRE((*out)[{1, 2}] == 54);
+        REQUIRE((*out)[{2, 0}] == 138);
+        REQUIRE((*out)[{2, 1}] == 114);
+        REQUIRE((*out)[{2, 2}] == 90);
+    }
 }
