@@ -2247,3 +2247,39 @@ TEST_CASE("The += operator works correctly")
         REQUIRE(t1[{1, 1}] == 3);
     }
 }
+
+TEST_CASE("Autograd works for view method")
+{
+    SECTION("View method with sum and backward")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t2 = t1.view({2, 8});
+        Tensor<float> t3 = t2.sum();
+        t3.backward();
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                REQUIRE((*t1.grad)[{i, j}] == 1);
+            }
+        }
+    }
+
+    SECTION("View method with sum and backward for higher dimensions")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({2, 2, 2}, true);
+        Tensor<float> t2 = t1.view({4, 2});
+        Tensor<float> t3 = t2.sum();
+        t3.backward();
+        for (int i = 0; i < 2; i++)
+        {
+            for (int j = 0; j < 2; j++)
+            {
+                for (int k = 0; k < 2; k++)
+                {
+                    REQUIRE((*t1.grad)[{i, j, k}] == 1);
+                }
+            }
+        }
+    }
+}
