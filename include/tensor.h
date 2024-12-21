@@ -58,7 +58,7 @@ class Tensor
     void mm_backward();
 
     void cross_entropy_backward(int n, std::vector<int> &target);
-
+    
     void add_reference();
 
     void release();
@@ -120,6 +120,8 @@ class Tensor
     Tensor operator*(T other);
 
     Tensor operator/(T other);
+
+    Tensor& operator+=(Tensor<T> &other);
 
     template <typename U>
     friend Tensor<U> operator/(U other, Tensor<U> &t);

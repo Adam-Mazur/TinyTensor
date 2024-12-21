@@ -790,7 +790,7 @@ void Tensor<T>::add_backward()
         }
         std::vector<int> new_shape(operand1->shape.begin(), operand1->shape.end());
         Tensor<T> reduced_grad = this->grad->sum(dim_to_reduce, true).view(new_shape);
-        (*operand1->grad) = (*operand1->grad) + reduced_grad;
+        (*operand1->grad) += reduced_grad;
     }
     if (operand2->grad != nullptr)
     {
@@ -808,7 +808,7 @@ void Tensor<T>::add_backward()
         }
         std::vector<int> new_shape(operand2->shape.begin(), operand2->shape.end());
         Tensor<T> reduced_grad = this->grad->sum(dim_to_reduce, true).view(new_shape);
-        (*operand2->grad) = (*operand2->grad) + reduced_grad;
+        (*operand2->grad) += reduced_grad;
     }
 }
 
@@ -835,7 +835,7 @@ void Tensor<T>::sub_backward()
         }
         std::vector<int> new_shape(operand1->shape.begin(), operand1->shape.end());
         Tensor<T> reduced_grad = this->grad->sum(dim_to_reduce, true).view(new_shape);
-        (*operand1->grad) = (*operand1->grad) + reduced_grad;
+        (*operand1->grad) += reduced_grad;
     }
     if (operand2->grad != nullptr)
     {
@@ -853,7 +853,8 @@ void Tensor<T>::sub_backward()
         }
         std::vector<int> new_shape(operand2->shape.begin(), operand2->shape.end());
         Tensor<T> reduced_grad = this->grad->sum(dim_to_reduce, true).view(new_shape);
-        (*operand2->grad) = (*operand2->grad) - reduced_grad;
+        Tensor<T> temp = -reduced_grad;
+        (*operand2->grad) += temp;
     }
 }
 
@@ -867,7 +868,8 @@ void Tensor<T>::minus_backward()
     if (operand1->grad != nullptr)
     {
         Tensor<T> new_tensor_grad = this->grad->clone();
-        (*operand1->grad) = (*operand1->grad) - new_tensor_grad;
+        Tensor<T> temp = -new_tensor_grad;
+        (*operand1->grad) += temp;
     }
 }
 
@@ -894,7 +896,7 @@ void Tensor<T>::mul_backward()
         }
         std::vector<int> new_shape(operand1->shape.begin(), operand1->shape.end());
         Tensor<T> reduced_grad = ((*this->grad) * (*operand2)).sum(dim_to_reduce, true).view(new_shape);
-        (*operand1->grad) = (*operand1->grad) + reduced_grad;
+        (*operand1->grad) += reduced_grad;
     }
     if (operand2->grad != nullptr)
     {
@@ -912,7 +914,7 @@ void Tensor<T>::mul_backward()
         }
         std::vector<int> new_shape(operand2->shape.begin(), operand2->shape.end());
         Tensor<T> reduced_grad = ((*this->grad) * (*operand1)).sum(dim_to_reduce, true).view(new_shape);
-        (*operand2->grad) = (*operand2->grad) + reduced_grad;
+        (*operand2->grad) += reduced_grad;
     }
 }
 
@@ -940,7 +942,7 @@ void Tensor<T>::div_backward()
         std::vector<int> new_shape(operand1->shape.begin(), operand1->shape.end());
         Tensor<T> temp1 = static_cast<T>(1)/(*operand2);
         Tensor<T> reduced_grad = ((*this->grad) * temp1).sum(dim_to_reduce, true).view(new_shape);
-        (*operand1->grad) = (*operand1->grad) + reduced_grad;
+        (*operand1->grad) += reduced_grad;
     }
     if (operand2->grad != nullptr)
     {
@@ -960,7 +962,7 @@ void Tensor<T>::div_backward()
         Tensor<T> temp1 = (*operand2) * (*operand2);
         Tensor<T> temp2 = -(*operand1) / temp1;
         Tensor<T> reduced_grad = ((*this->grad) * temp2).sum(dim_to_reduce, true).view(new_shape);
-        (*operand2->grad) = (*operand2->grad) + reduced_grad;
+        (*operand2->grad) += reduced_grad;
     }
 }
 
@@ -973,7 +975,7 @@ void Tensor<T>::sum_backward()
     }
     if (operand1->grad != nullptr)
     {
-        (*operand1->grad) = (*operand1->grad) + (*this->grad);
+        (*operand1->grad) += (*this->grad);
     }
 }
 
@@ -995,10 +997,10 @@ void Tensor<T>::sum2_backward(const std::vector<int> &dim, bool keep_dim)
                 new_shape[i] = 1;
             }
             Tensor<T> temp2 = temp.view(new_shape);
-            (*operand1->grad) = (*operand1->grad) + temp2;
+            (*operand1->grad) += temp2;
         } else 
         {
-            (*operand1->grad) = (*operand1->grad) + temp;
+            (*operand1->grad) += temp;
         }
     }
 }
@@ -1152,7 +1154,7 @@ void Tensor<T>::sqrt_backward()
     {
         Tensor<T> temp = static_cast<T>(0.5) / (*this);
         Tensor<T> temp2 = (*this->grad) * temp;
-        (*operand1->grad) = (*operand1->grad) + temp2;
+        (*operand1->grad) += temp2;
     }
 }
 
@@ -1184,7 +1186,7 @@ void Tensor<T>::pow_backward(T exponent)
         Tensor<T> temp =  (*this) / (*operand1);
         Tensor<T> temp2 = temp * exponent;
         Tensor<T> temp3 = (*this->grad) * temp2;
-        (*operand1->grad) = (*operand1->grad) + temp3;
+        (*operand1->grad) += temp3;
     }
 }
 
@@ -1214,7 +1216,7 @@ void Tensor<T>::exp_backward()
     if (operand1->grad != nullptr)
     {
         Tensor<T> temp = (*this->grad) * (*this);
-        (*operand1->grad) = (*operand1->grad) + temp;
+        (*operand1->grad) += temp;
     }
 }
 
@@ -1245,7 +1247,7 @@ void Tensor<T>::log_backward()
     {
         Tensor<T> temp = static_cast<T>(1) / (*operand1);
         Tensor<T> temp2 = (*this->grad) * temp;
-        (*operand1->grad) = (*operand1->grad) + temp2;
+        (*operand1->grad) += temp2;
     }
 }
 
@@ -1295,7 +1297,7 @@ void Tensor<T>::relu_backward()
             }
         }
         Tensor<T> temp2 = (*this->grad) * temp;
-        (*operand1->grad) = (*operand1->grad) + temp2;
+        (*operand1->grad) += temp2;
     }
 }
 
@@ -1345,7 +1347,7 @@ void Tensor<T>::cross_entropy_backward(int n, std::vector<int> &target)
     for (int i = 0; i < n; i++)
     {
         Tensor<T> temp = (*this->grad) * static_cast<T>(- 1.0 / n);
-        (*operand1->grad)[{i, target[i]}] = (*operand1->grad)[{i, target[i]}] + temp[{0}];
+        (*operand1->grad)[{i, target[i]}] += temp[{0}];
     }
 }
 
@@ -1474,14 +1476,79 @@ void Tensor<T>::mm_backward()
     {
         Tensor<T> temp = operand2->transpose(0, 1);
         Tensor<T> new_tensor_grad = Tensor<T>::mm(*this->grad, temp);
-        (*operand1->grad) = (*operand1->grad) + new_tensor_grad;
+        (*operand1->grad) += new_tensor_grad;
     }
     if (operand2->grad != nullptr)
     {
         Tensor<T> temp = operand1->transpose(0, 1);
         Tensor<T> new_tensor_grad = Tensor<T>::mm(temp, *this->grad);
-        (*operand2->grad) = (*operand2->grad) + new_tensor_grad;
+        (*operand2->grad) += new_tensor_grad;
     }
+}
+
+template <typename T>
+Tensor<T>& Tensor<T>::operator+=(Tensor<T> &other)
+{
+    // No backward support yet
+    if (this->grad != nullptr)
+    {
+        throw std::invalid_argument("In-place operations are not supported for tensors with gradients.");
+    }
+    
+    std::vector<size_t> other_shape(other.shape.begin(), other.shape.end());
+    std::vector<int> other_strides(other.strides.begin(), other.strides.end());
+    if (other_shape.size() < this->shape.size())
+    {
+        std::vector<size_t> padding(this->shape.size() - other_shape.size(), 1);
+        other_shape.insert(other_shape.begin(), padding.begin(), padding.end());
+        other_strides.insert(other_strides.begin(), padding.begin(), padding.end());
+    }
+    else if (other_shape.size() > this->shape.size())
+    {
+        throw std::invalid_argument("In-place operations are not supported for tensors with those shapes.");
+    }
+
+    for (int i = this->shape.size() - 1; i >= 0; i--)
+    {   
+        if (other_shape[i] == 1)
+        {
+            other_strides[i] = 0;
+        }
+        if (other_shape[i] != 1 && this->shape[i] != other_shape[i])
+        {
+            throw std::invalid_argument("Those shapes are not broadcastable.");
+        }
+    }
+
+    int this_index = this->offset;
+    int other_index = other.offset;
+    std::vector<int> indices(this->shape.size(), 0);
+    bool run = true;
+    while (run)
+    {
+        (*this->data)[this_index] += (*other.data)[other_index];
+        for (int j = indices.size() - 1; j >= 0; j--)
+        {
+            indices[j]++;
+            this_index += this->strides[j];
+            other_index += other_strides[j];
+            if (indices[j] == this->shape[j] && j == 0)
+            {
+                run = false;
+            }
+            else if (indices[j] == this->shape[j])
+            {
+                indices[j] = 0;
+                this_index -= this->shape[j] * this->strides[j];
+                other_index -= other_shape[j] * other_strides[j];
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    return *this;
 }
 
 template <typename T>

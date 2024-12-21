@@ -2129,3 +2129,121 @@ TEST_CASE("The mm method works correctly")
         REQUIRE((*out)[{2, 2}] == 90);
     }
 }
+
+TEST_CASE("Autograd works with indexing on tensors")
+{
+    SECTION("Indexing with ranges on a 2D tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t2 = t1[{{1, 3}, {1, 3}}];
+        Tensor<float> t3 = t2.sum();
+        t3.backward();
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                if (i >= 1 && i < 3 && j >= 1 && j < 3)
+                {
+                    REQUIRE_THAT(((*t1.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
+                }
+                else
+                {
+                    REQUIRE_THAT(((*t1.grad)[{i, j}]), Catch::Matchers::WithinAbs(0.0f, 0.01f));
+                }
+            }
+        }
+    }
+
+    SECTION("Indexing with negative indices on a 2D tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t2 = t1[{{-3, -1}, {-3, -1}}];
+        Tensor<float> t3 = t2.sum();
+        t3.backward();
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                if (i >= 1 && i < 3 && j >= 1 && j < 3)
+                {
+                    REQUIRE_THAT(((*t1.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
+                }
+                else
+                {
+                    REQUIRE_THAT(((*t1.grad)[{i, j}]), Catch::Matchers::WithinAbs(0.0f, 0.01f));
+                }
+            }
+        }
+    }
+
+    SECTION("Indexing with indices greater than the max shape on a 2D tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t2 = t1[{{1, 5}, {1, 5}}];
+        Tensor<float> t3 = t2.sum();
+        t3.backward();
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                if (i >= 1 && j >= 1)
+                {
+                    REQUIRE_THAT(((*t1.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
+                }
+                else
+                {
+                    REQUIRE_THAT(((*t1.grad)[{i, j}]), Catch::Matchers::WithinAbs(0.0f, 0.01f));
+                }
+            }
+        }
+    }
+
+    SECTION("Indexing with less pairs of indices than the number of dimensions on a 3D tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4, 4}, true);
+        Tensor<float> t2 = t1[{{1, 3}, {1, 3}}];
+        Tensor<float> t3 = t2.sum();
+        t3.backward();
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                for (int k = 0; k < 4; k++)
+                {
+                    if (i >= 1 && i < 3 && j >= 1 && j < 3)
+                    {
+                        REQUIRE_THAT(((*t1.grad)[{i, j, k}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
+                    }
+                    else
+                    {
+                        REQUIRE_THAT(((*t1.grad)[{i, j, k}]), Catch::Matchers::WithinAbs(0.0f, 0.01f));
+                    }
+                }
+            }
+        }
+    }
+}
+
+TEST_CASE("The += operator works correctly")
+{
+    SECTION("Addition assignment for 1D tensors")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3});
+        Tensor<float> t2 = Tensor<float>({4, 5, 6});
+        t1 += t2;
+        REQUIRE(t1[{0}] == 5);
+        REQUIRE(t1[{1}] == 7);
+        REQUIRE(t1[{2}] == 9);
+    }
+
+    SECTION("Addition assignment for 2D tensors")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({2, 2});
+        Tensor<float> t2 = Tensor<float>::ones({2, 2}) * 2;
+        t1 += t2;
+        REQUIRE(t1[{0, 0}] == 3);
+        REQUIRE(t1[{0, 1}] == 3);
+        REQUIRE(t1[{1, 0}] == 3);
+        REQUIRE(t1[{1, 1}] == 3);
+    }
+}

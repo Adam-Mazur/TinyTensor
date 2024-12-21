@@ -17,7 +17,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_executable(test_tensor tests/test_tensor.cpp)
-# target_compile_options(test_tensor PRIVATE -g -O0)
+target_compile_options(test_tensor PRIVATE -g -O0)
 
 include(FetchContent)
 FetchContent_Declare(
