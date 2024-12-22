@@ -1456,7 +1456,7 @@ Tensor<T> Tensor<T>::mm(Tensor &t1, Tensor &t2, Tensor *out)
             }
         }
     }
-    if (out == nullptr && new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr)
     {
         new_tensor._backward = &Tensor<T>::mm_backward;
         new_tensor.operand1 = &t1;
@@ -1614,7 +1614,7 @@ Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
 
         std::vector<int> strides1(op1.strides.begin(), op1.strides.end() - 2);
         std::vector<int> strides2(op2.strides.begin(), op2.strides.end() - 2);
-        std::vector<int> strides_out(new_tensor.strides.begin(), new_tensor.strides.end() - 2);
+        std::vector<int> strides_new(new_tensor.strides.begin(), new_tensor.strides.end() - 2);
 
         for (int i = 0; i < n_dim - 2; i++)
         {
@@ -1628,34 +1628,37 @@ Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
             }
         }
         
-        Tensor<T> out = new_tensor;
-
-        op1.shape = std::vector<size_t>({static_cast<size_t>(n), static_cast<size_t>(m)});
-        op2.shape = std::vector<size_t>({static_cast<size_t>(m), static_cast<size_t>(p)});
-        out.shape = std::vector<size_t>({static_cast<size_t>(n), static_cast<size_t>(p)});
-
-        op1.strides = {op1.strides[n_dim - 2], op1.strides[n_dim - 1]};
-        op2.strides = {op2.strides[n_dim - 2], op2.strides[n_dim - 1]};
-        out.strides = {out.strides[n_dim - 2], out.strides[n_dim - 1]};
+        std::vector<int> op1_strides = {op1.strides[n_dim - 2], op1.strides[n_dim - 1]};
+        std::vector<int> op2_strides = {op2.strides[n_dim - 2], op2.strides[n_dim - 1]};
+        std::vector<int> out_strides = {new_tensor.strides[n_dim - 2], new_tensor.strides[n_dim - 1]};
 
         int offset1 = op1.offset;
         int offset2 = op2.offset;
-        int offset_out = out.offset;
+        int offset_out = new_tensor.offset;
 
         std::vector<int> indices(n_dim - 2, 0);
         bool run = true;
         while (run)
         {
-            op1.offset = offset1;
-            op2.offset = offset2;
-            out.offset = offset_out;
-            Tensor<T>::mm(op1, op2, &out);
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < p; j++)
+                {
+                    for (int k = 0; k < m; k++)
+                    {
+                        int index_new = offset_out + i * out_strides[0] + j * out_strides[1];
+                        int index1 = offset1 + i * op1_strides[0] + k * op1_strides[1];
+                        int index2 = offset2 + k * op2_strides[0] + j * op2_strides[1];
+                        (*new_tensor.data)[index_new] += (*op1.data)[index1] * (*op2.data)[index2];
+                    }
+                }
+            }
             for (int j = indices.size() - 1; j >= 0; j--)
             {
                 indices[j]++;
                 offset1 += strides1[j];
                 offset2 += strides2[j];
-                offset_out += strides_out[j];
+                offset_out += strides_new[j];
                 if (indices[j] == new_shape[j] && j == 0)
                 {
                     run = false;
@@ -1666,7 +1669,7 @@ Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
                     indices[j] = 0;
                     offset1 -= t1_shape[j] * strides1[j];
                     offset2 -= t2_shape[j] * strides2[j];
-                    offset_out -= new_shape[j] * strides_out[j];
+                    offset_out -= new_shape[j] * strides_new[j];
                 }
                 else
                 {
