@@ -2374,4 +2374,172 @@ TEST_CASE("The matmul method works correctly")
         Tensor<float> result = Tensor<float>::matmul(t1, t2);
         REQUIRE(result.size() == std::vector<size_t>({2, 3, 4, 5, 5}));
     }
+
+    SECTION("Autograd works for matrix x matrix product")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6}, true).view({2, 3});
+        Tensor<float> t2 = Tensor<float>({7, 8, 9, 10, 11, 12}, true).view({3, 2});
+        Tensor<float> result = Tensor<float>::matmul(t1, t2);
+        Tensor<float> loss = result.sum();
+        loss.backward();
+
+        std::vector<float> expected_grad_t1 = {15, 19, 23, 15, 19, 23};
+        std::vector<float> expected_grad_t2 = {5, 5, 7, 7, 9, 9};
+
+        for (int i = 0; i < 2; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                REQUIRE((*t1.grad)[{i, j}] == expected_grad_t1[i * 3 + j]);
+            }
+        }
+
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 2; j++)
+            {
+                REQUIRE((*t2.grad)[{i, j}] == expected_grad_t2[i * 2 + j]);
+            }
+        }
+    }
+
+    SECTION("Autograd works for vector x matrix product")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3}, true);
+        Tensor<float> t2 = Tensor<float>({4, 5, 6, 7, 8, 9}, true).view({3, 2});
+        Tensor<float> result = Tensor<float>::matmul(t1, t2);
+        Tensor<float> loss = result.sum();
+        loss.backward();
+
+        std::vector<float> expected_grad_t1 = {9, 13, 17};
+        std::vector<float> expected_grad_t2 = {1, 1, 2, 2, 3, 3};
+
+        for (int i = 0; i < 3; i++)
+        {
+            REQUIRE((*t1.grad)[{i}] == expected_grad_t1[i]);
+        }
+
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 2; j++)
+            {
+                REQUIRE((*t2.grad)[{i, j}] == expected_grad_t2[i * 2 + j]);
+            }
+        }
+    }
+
+    SECTION("Autograd works for matrix x vector product")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6}, true).view({2, 3});
+        Tensor<float> t2 = Tensor<float>({7, 8, 9}, true);
+        Tensor<float> result = Tensor<float>::matmul(t1, t2);
+        Tensor<float> loss = result.sum();
+        loss.backward();
+
+        std::vector<float> expected_grad_t1 = {7, 8, 9, 7, 8, 9};
+        std::vector<float> expected_grad_t2 = {5, 7, 9};
+
+        for (int i = 0; i < 2; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                REQUIRE((*t1.grad)[{i, j}] == expected_grad_t1[i * 3 + j]);
+            }
+        }
+
+        for (int i = 0; i < 3; i++)
+        {
+            REQUIRE((*t2.grad)[{i}] == expected_grad_t2[i]);
+        }
+    }
+
+    SECTION("Autograd works for batched matrix multiplication")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, true).view({2, 2, 3});
+        Tensor<float> t2 = Tensor<float>({13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24}, true).view({2, 3, 2});
+        Tensor<float> result = Tensor<float>::matmul(t1, t2);
+        Tensor<float> loss = result.sum();
+        loss.backward();
+
+        std::vector<float> expected_grad_t1 = {27, 31, 35, 27, 31, 35, 39, 43, 47, 39, 43, 47};
+        std::vector<float> expected_grad_t2 = {5, 5, 7, 7, 9, 9, 17, 17, 19, 19, 21, 21};
+
+        for (int i = 0; i < 2; i++)
+        {
+            for (int j = 0; j < 2; j++)
+            {
+                for (int k = 0; k < 3; k++)
+                {
+                    REQUIRE((*t1.grad)[{i, j, k}] == expected_grad_t1[i * 6 + j * 3 + k]);
+                }
+            }
+        }
+
+        for (int i = 0; i < 2; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                for (int k = 0; k < 2; k++)
+                {
+                    REQUIRE((*t2.grad)[{i, j, k}] == expected_grad_t2[i * 6 + j * 2 + k]);
+                }
+            }
+        }
+    }
+
+    SECTION("Autograd works for batched matrix x vector product")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, true).view({2, 2, 3});
+        Tensor<float> t2 = Tensor<float>({13, 14, 15}, true);
+        Tensor<float> result = Tensor<float>::matmul(t1, t2);
+        Tensor<float> loss = result.sum();
+        loss.backward();
+
+        std::vector<float> expected_grad_t1 = {13, 14, 15, 13, 14, 15, 13, 14, 15, 13, 14, 15};
+        std::vector<float> expected_grad_t2 = {22, 26, 30};
+
+        for (int i = 0; i < 2; i++)
+        {
+            for (int j = 0; j < 2; j++)
+            {
+                for (int k = 0; k < 3; k++)
+                {
+                    REQUIRE((*t1.grad)[{i, j, k}] == expected_grad_t1[i * 6 + j * 3 + k]);
+                }
+            }
+        }
+
+        for (int i = 0; i < 3; i++)
+        {
+            REQUIRE((*t2.grad)[{i}] == expected_grad_t2[i]);
+        }
+    }
+
+    SECTION("Autograd works for vector x batched matrix product")
+    {
+        Tensor<float> t1 = Tensor<float>({13, 14, 15}, true);
+        Tensor<float> t2 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, true).view({2, 3, 2});
+        Tensor<float> result = Tensor<float>::matmul(t1, t2);
+        Tensor<float> loss = result.sum();
+        loss.backward();
+
+        std::vector<float> expected_grad_t1 = {18, 26, 34};
+        std::vector<float> expected_grad_t2 = {13, 13, 14, 14, 15, 15, 13, 13, 14, 14, 15, 15};
+
+        for (int i = 0; i < 3; i++)
+        {
+            REQUIRE((*t1.grad)[{i}] == expected_grad_t1[i]);
+        }
+
+        for (int i = 0; i < 2; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                for (int k = 0; k < 2; k++)
+                {
+                    REQUIRE((*t2.grad)[{i, j, k}] == expected_grad_t2[i * 6 + j * 2 + k]);
+                }
+            }
+        }
+    }
 }

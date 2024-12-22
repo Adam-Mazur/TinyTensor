@@ -1599,8 +1599,17 @@ Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
     new_shape[new_shape.size() - 1] = t2_shape[t2_shape.size() - 1];
     
     Tensor<T> new_tensor = Tensor<T>::zeros(new_shape, t1.grad != nullptr || t2.grad != nullptr);
-    Tensor<T> op1 = t1.view(t1_shape);
-    Tensor<T> op2 = t2.view(t2_shape);
+    
+    Tensor<T> op1 = t1;
+    Tensor<T> op2 = t2;
+    if (t1_shape.size() != t1.shape.size())
+    {
+        op1 = t1.view(t1_shape);
+    }
+    if (t2_shape.size() != t2.shape.size())
+    {
+        op2 = t2.view(t2_shape);
+    }
 
     if (new_shape.size() == 2)
     {
@@ -1690,7 +1699,66 @@ Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
         new_shape2.erase(new_shape2.begin() + new_shape2.size() - 2);
         new_tensor = new_tensor.view(new_shape2);
     }
+    if (new_tensor.grad != nullptr)
+    {
+        std::vector<int> out_shape(new_shape.begin(), new_shape.end());
+        new_tensor._backward = std::bind(&Tensor<T>::matmul_backward, std::placeholders::_1, t1_shape, t2_shape, out_shape);
+        new_tensor.operand1 = &t1;
+        new_tensor.operand2 = &t2;
+    }
     return new_tensor;
+}
+
+template <typename T>
+void Tensor<T>::matmul_backward(std::vector<int> &t1_shape, std::vector<int> &t2_shape, std::vector<int> &new_shape)
+{
+    if (this->grad == nullptr)
+    {
+        std::invalid_argument("Can't call backward if the gradient is nullptr.");
+    }
+    int n_dim = new_shape.size();
+    if (operand1->grad != nullptr)
+    {
+        Tensor<T> op2 = operand2->view(t2_shape);
+        Tensor<T> out_grad = this->grad->view(new_shape);
+
+        Tensor<T> temp = op2.transpose(n_dim - 2, n_dim - 1);
+        Tensor<T> new_tensor_grad = Tensor<T>::matmul(out_grad, temp);
+
+        std::vector<int> dim_to_reduce;
+        for (int i = 0; i < n_dim - 2; i++)
+        {
+            if (t1_shape[i] != new_shape[i])
+            {
+                dim_to_reduce.push_back(i);
+            }
+        }
+
+        std::vector<int> op1_shape(operand1->shape.begin(), operand1->shape.end());
+        Tensor<T> reduced_grad = new_tensor_grad.sum(dim_to_reduce, true).view(op1_shape);
+        (*operand1->grad) += reduced_grad;
+    }
+    if (operand2->grad != nullptr)
+    {
+        Tensor<T> op1 = operand1->view(t1_shape);
+        Tensor<T> out_grad = this->grad->view(new_shape);
+
+        Tensor<T> temp = op1.transpose(n_dim - 2, n_dim - 1);
+        Tensor<T> new_tensor_grad = Tensor<T>::matmul(temp, out_grad);
+
+        std::vector<int> dim_to_reduce;
+        for (int i = 0; i < n_dim - 2; i++)
+        {
+            if (t2_shape[i] != new_shape[i])
+            {
+                dim_to_reduce.push_back(i);
+            }
+        }
+
+        std::vector<int> op2_shape(operand2->shape.begin(), operand2->shape.end());
+        Tensor<T> reduced_grad = new_tensor_grad.sum(dim_to_reduce, true).view(op2_shape);
+        (*operand2->grad) += reduced_grad;
+    }
 }
 
 template <typename T>

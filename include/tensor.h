@@ -59,6 +59,8 @@ class Tensor
 
     void cross_entropy_backward(int n, std::vector<int> &target);
     
+    void matmul_backward(std::vector<int> &t1_shape, std::vector<int> &t2_shape, std::vector<int> &new_shape);
+    
     void add_reference();
 
     void release();
