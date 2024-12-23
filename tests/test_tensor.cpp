@@ -2653,4 +2653,88 @@ TEST_CASE("The unfold function works correctly")
             }
         }
     }
+
+    SECTION("Autograd works for Padding 2, stride 1")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, true).view({1, 1, 3, 4});
+        Tensor<float> result = Tensor<float>::unfold(t1, 2, 2, 1);
+        Tensor<float> loss = result.sum(); 
+        loss.backward();
+        std::vector<float> expected_result = {4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4.};
+
+        for (int j = 0; j < 3; j++)
+        {
+            for (int k = 0; k < 4; k++)
+            {
+                REQUIRE((*t1.grad)[{0, 0, j, k}] == expected_result[j * 4 + k]);
+            }
+        }
+    }
+    SECTION("Autograd works for Padding 1, stride 2")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, true).view({1, 1, 3, 4});
+        Tensor<float> result = Tensor<float>::unfold(t1, 2, 1, 2);
+        Tensor<float> loss = result.sum();
+        loss.backward();
+        std::vector<float> expected_result = {1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.};
+
+        for (int j = 0; j < 3; j++)
+        {
+            for (int k = 0; k < 4; k++)
+            {
+                REQUIRE((*t1.grad)[{0, 0, j, k}] == expected_result[j * 4 + k]);
+            }
+        }
+    }
+
+    SECTION("Autograd works for Kernel size 3, padding 1, stride 1")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, true).view({1, 1, 3, 4});
+        Tensor<float> result = Tensor<float>::unfold(t1, 3, 1, 1);
+        Tensor<float> loss = result.sum();
+        loss.backward();
+        std::vector<float> expected_result = {4., 6., 6., 4., 6., 9., 9., 6., 4., 6., 6., 4.};
+
+        for (int j = 0; j < 3; j++)
+        {
+            for (int k = 0; k < 4; k++)
+            {
+                REQUIRE((*t1.grad)[{0, 0, j, k}] == expected_result[j * 4 + k]);
+            }
+        }
+    }
+
+    SECTION("Autograd works for Kernel size 2, padding 0, stride 2")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, true).view({1, 1, 3, 4});
+        Tensor<float> result = Tensor<float>::unfold(t1, 2, 0, 2);
+        Tensor<float> loss = result.sum();
+        loss.backward();
+        std::vector<float> expected_result = {1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0.};
+
+        for (int j = 0; j < 3; j++)
+        {
+            for (int k = 0; k < 4; k++)
+            {
+                REQUIRE((*t1.grad)[{0, 0, j, k}] == expected_result[j * 4 + k]);
+            }
+        }
+    }
+
+    SECTION("Autograd works for Kernel size 3, padding 2, stride 1")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, true).view({1, 1, 3, 4});
+        Tensor<float> result = Tensor<float>::unfold(t1, 3, 2, 1);
+        Tensor<float> loss = result.sum();
+        loss.backward();
+        std::vector<float> expected_result = {9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9.};
+
+        for (int j = 0; j < 3; j++)
+        {
+            for (int k = 0; k < 4; k++)
+            {
+                REQUIRE((*t1.grad)[{0, 0, j, k}] == expected_result[j * 4 + k]);
+            }
+        }
+    }
 }

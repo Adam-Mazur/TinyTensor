@@ -1814,7 +1814,73 @@ Tensor<T> Tensor<T>::unfold(Tensor &in, int kernel_size, int padding, int stride
             }
         }
     }
+    if (new_tensor.grad != nullptr)
+    {
+        new_tensor._backward =
+            std::bind(&Tensor<T>::unfold_backward, std::placeholders::_1, kernel_size, padding, stride);
+        new_tensor.operand1 = &in;
+    }
     return new_tensor;
+}
+
+template <typename T>
+void Tensor<T>::unfold_backward(int kernel_size, int padding, int stride)
+{
+    if (this->grad == nullptr)
+    {
+        std::invalid_argument("Can't call backward if the gradient is nullptr.");
+    }
+    if (operand1->grad != nullptr)
+    {
+        int batch_size = operand1->shape[0];
+        int n_channels = operand1->shape[1];
+        int spacial_dim1 = operand1->shape[2];
+        int spacial_dim2 = operand1->shape[3];
+
+        int n_block_row = ((spacial_dim1 + 2 * padding - kernel_size) / stride + 1);
+        int n_block_col = ((spacial_dim2 + 2 * padding - kernel_size) / stride + 1);
+
+        int n_rows = kernel_size * kernel_size * n_channels;
+        int n_cols = n_block_row * n_block_col;
+
+        int out_off = this->grad->offset;
+        int out_st0 = this->grad->strides[0];
+        int out_st1 = this->grad->strides[1];
+        int out_st2 = this->grad->strides[2];
+
+        int op1_off = operand1->offset;
+        int op1_st0 = operand1->strides[0];
+        int op1_st1 = operand1->strides[0];
+        int op1_st2 = operand1->strides[2];
+        int op1_st3 = operand1->strides[3];
+
+        for (int i = 0; i < batch_size; i++)
+        {
+            for (int j = 0; j < n_rows; j++)
+            {
+                for (int k = 0; k < n_cols; k++)
+                {
+                    int channel = j / (kernel_size * kernel_size);
+                    int row = (j % (kernel_size * kernel_size)) / kernel_size;
+                    int col = (j % (kernel_size * kernel_size)) % kernel_size;
+
+                    int row_in = row + stride * (k / n_block_col);
+                    int col_in = col + stride * (k % n_block_col);
+
+                    if (row_in < padding || row_in >= spacial_dim1 + padding || col_in < padding ||
+                        col_in >= spacial_dim2 + padding)
+                    {
+                        continue;
+                    }
+
+                    int index = out_off + i * out_st0 + j * out_st1 + k * out_st2;
+                    int index2 = op1_off + i * op1_st0 + channel * op1_st1 + (row_in - padding) * op1_st2 +
+                                    (col_in - padding) * op1_st3;
+                    (*operand1->grad->data)[index2] += (*this->grad->data)[index]; 
+                }
+            }
+        }
+    }
 }
 
 template <typename T>
