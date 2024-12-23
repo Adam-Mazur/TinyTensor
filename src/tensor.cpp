@@ -1762,6 +1762,62 @@ void Tensor<T>::matmul_backward(std::vector<int> &t1_shape, std::vector<int> &t2
 }
 
 template <typename T>
+Tensor<T> Tensor<T>::unfold(Tensor &in, int kernel_size, int padding, int stride)
+{
+    int batch_size = in.shape[0];
+    int n_channels = in.shape[1];
+    int spacial_dim1 = in.shape[2];
+    int spacial_dim2 = in.shape[3];
+
+    int n_block_row = ((spacial_dim1 + 2 * padding - kernel_size) / stride + 1);
+    int n_block_col = ((spacial_dim2 + 2 * padding - kernel_size) / stride + 1);
+
+    int n_rows = kernel_size * kernel_size * n_channels;
+    int n_cols = n_block_row * n_block_col;
+    
+    Tensor<T> new_tensor = Tensor<T>::zeros({static_cast<size_t>(batch_size), static_cast<size_t>(n_rows), static_cast<size_t>(n_cols)}, in.grad != nullptr);
+
+    int new_off = new_tensor.offset;
+    int new_st0 = new_tensor.strides[0];
+    int new_st1 = new_tensor.strides[1];
+    int new_st2 = new_tensor.strides[2];
+
+    int in_off = in.offset;
+    int in_st0 = in.strides[0];
+    int in_st1 = in.strides[0];
+    int in_st2 = in.strides[2];
+    int in_st3 = in.strides[3];
+
+    for (int i = 0; i < batch_size; i++)
+    {
+        for (int j = 0; j < n_rows; j++)
+        {
+            for (int k = 0; k < n_cols; k++)
+            {
+                int channel = j / (kernel_size * kernel_size);
+                int row = (j % (kernel_size * kernel_size)) / kernel_size;
+                int col = (j % (kernel_size * kernel_size)) % kernel_size;
+
+                int row_in = row + stride * (k / n_block_col);
+                int col_in = col + stride * (k % n_block_col);
+                
+                int index = new_off + i * new_st0 + j * new_st1 + k * new_st2;
+                if (row_in < padding || row_in >= spacial_dim1 + padding || col_in < padding || col_in >= spacial_dim2 + padding)
+                {
+                    (*new_tensor.data)[index] = 0;
+                }
+                else
+                {
+                    int index2 = in_off + i * in_st0 + channel * in_st1 + (row_in - padding) * in_st2 + (col_in - padding) * in_st3;
+                    (*new_tensor.data)[index] = (*in.data)[index2];
+                }
+            }
+        }
+    }
+    return new_tensor;
+}
+
+template <typename T>
 Tensor<T>::~Tensor()
 {
     release();

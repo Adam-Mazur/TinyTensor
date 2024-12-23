@@ -172,6 +172,8 @@ class Tensor
 
     static Tensor matmul(Tensor &t1, Tensor &t2);
 
+    static Tensor unfold(Tensor &in, int kernel_size, int padding, int stride);
+
     ~Tensor();
 };
 

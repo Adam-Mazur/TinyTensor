@@ -2543,3 +2543,114 @@ TEST_CASE("The matmul method works correctly")
         }
     }
 }
+
+TEST_CASE("The unfold function works correctly")
+{
+    SECTION("Padding 2, stride 1")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({1, 1, 3, 4});
+        Tensor<float> result = Tensor<float>::unfold(t1, 2, 2, 1);
+        REQUIRE(result.size() == std::vector<size_t>({1, 4, 42}));
+        std::vector<int> expected_result = {
+            0, 0, 0, 0,  0,  0,  0, 0, 0, 0,  0,  0,  0, 0, 0, 0, 1,  2,  3,  4, 0, 0, 0, 5, 6,  7,  8,  0,
+            0, 0, 9, 10, 11, 12, 0, 0, 0, 0,  0,  0,  0, 0, 0, 0, 0,  0,  0,  0, 0, 0, 0, 0, 0,  0,  0,  0,
+            0, 1, 2, 3,  4,  0,  0, 0, 5, 6,  7,  8,  0, 0, 0, 9, 10, 11, 12, 0, 0, 0, 0, 0, 0,  0,  0,  0,
+            0, 0, 0, 0,  0,  0,  0, 0, 0, 1,  2,  3,  4, 0, 0, 0, 5,  6,  7,  8, 0, 0, 0, 9, 10, 11, 12, 0,
+            0, 0, 0, 0,  0,  0,  0, 0, 0, 0,  0,  0,  0, 0, 0, 0, 0,  0,  0,  0, 0, 0, 1, 2, 3,  4,  0,  0,
+            0, 5, 6, 7,  8,  0,  0, 0, 9, 10, 11, 12, 0, 0, 0, 0, 0,  0,  0,  0, 0, 0, 0, 0, 0,  0,  0,  0
+        };
+
+        for (int j = 0; j < 4; j++)
+        {
+            for (int k = 0; k < 42; k++)
+            {
+                REQUIRE(result[{0, j, k}] == expected_result[j * 42 + k]);
+            }
+        }
+    }
+    SECTION("Padding 1, stride 2")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({1, 1, 3, 4});
+        Tensor<float> result = Tensor<float>::unfold(t1, 2, 1, 2);
+        REQUIRE(result.size() == std::vector<size_t>({1, 4, 6}));
+        std::vector<int> expected_result = {0, 0, 0, 0, 6, 8, 0, 0, 0, 5, 7, 0, 0, 2, 4, 0, 10, 12, 1, 3, 0, 9, 11, 0};
+
+        for (int j = 0; j < 4; j++)
+        {
+            for (int k = 0; k < 6; k++)
+            {
+                REQUIRE(result[{0, j, k}] == expected_result[j * 6 + k]);
+            }
+        }
+    }
+
+    SECTION("Kernel size 3, padding 1, stride 1")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({1, 1, 3, 4});
+        Tensor<float> result = Tensor<float>::unfold(t1, 3, 1, 1);
+        REQUIRE(result.size() == std::vector<size_t>({1, 9, 12}));
+        std::vector<int> expected_result = {
+            0, 0,  0,  0,  0,  1, 2, 3, 0, 5, 6, 7, 0,  0,  0,  0,  1, 2, 3, 4, 5, 6,
+            7, 8,  0,  0,  0,  0, 2, 3, 4, 0, 6, 7, 8,  0,  0,  1,  2, 3, 0, 5, 6, 7,
+            0, 9,  10, 11, 1,  2, 3, 4, 5, 6, 7, 8, 9,  10, 11, 12, 2, 3, 4, 0, 6, 7,
+            8, 0,  10, 11, 12, 0, 0, 5, 6, 7, 0, 9, 10, 11, 0,  0,  0, 0, 5, 6, 7, 8,
+            9, 10, 11, 12, 0,  0, 0, 0, 6, 7, 8, 0, 10, 11, 12, 0,  0, 0, 0, 0
+        };
+
+        for (int j = 0; j < 9; j++)
+        {
+            for (int k = 0; k < 12; k++)
+            {
+                REQUIRE(result[{0, j, k}] == expected_result[j * 12 + k]);
+            }
+        }
+    }
+
+    SECTION("Kernel size 2, padding 0, stride 2")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({1, 1, 3, 4});
+        Tensor<float> result = Tensor<float>::unfold(t1, 2, 0, 2);
+        REQUIRE(result.size() == std::vector<size_t>({1, 4, 2}));
+        std::vector<int> expected_result = {1, 3, 2, 4, 5, 7, 6, 8};
+
+        for (int j = 0; j < 4; j++)
+        {
+            for (int k = 0; k < 2; k++)
+            {
+                REQUIRE(result[{0, j, k}] == expected_result[j * 2 + k]);
+            }
+        }
+    }
+
+    SECTION("Kernel size 3, padding 2, stride 1")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({1, 1, 3, 4});
+        Tensor<float> result = Tensor<float>::unfold(t1, 3, 2, 1);
+        REQUIRE(result.size() == std::vector<size_t>({1, 9, 30}));
+        std::vector<int> expected_result = {
+            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  2,  3,  4,
+            0,  0,  5,  6,  7,  8,  0,  0,  9, 10, 11, 12,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  1,  2,  3,  4,  0,  0,  5,  6,  7,  8,  0,
+            0,  9, 10, 11, 12,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+            1,  2,  3,  4,  0,  0,  5,  6,  7,  8,  0,  0,  9, 10, 11, 12,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,  1,  2,  3,  4,  0,  0,  5,  6,  7,  8,
+            0,  0,  9, 10, 11, 12,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+            0,  1,  2,  3,  4,  0,  0,  5,  6,  7,  8,  0,  0,  9, 10, 11, 12,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  2,  3,  4,  0,  0,
+            5,  6,  7,  8,  0,  0,  9, 10, 11, 12,  0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  1,  2,  3,  4,  0,  0,  5,  6,  7,  8,  0,  0,  9, 10, 11, 12,
+            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  2,  3,  4,  0,
+            0,  5,  6,  7,  8,  0,  0,  9, 10, 11, 12,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  1,  2,  3,  4,  0,  0,  5,  6,  7,  8,  0,  0,
+            9, 10, 11, 12,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+        };
+
+        for (int j = 0; j < 9; j++)
+        {
+            for (int k = 0; k < 30; k++)
+            {
+                REQUIRE(result[{0, j, k}] == expected_result[j * 30 + k]);
+            }
+        }
+    }
+}
