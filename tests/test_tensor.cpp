@@ -1264,6 +1264,18 @@ TEST_CASE("The max method works correctly")
         Tensor<float> t2 = t1.max();
         REQUIRE(t2[{0}] == 4);
     }
+
+    SECTION("Autograd works for max")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5}, true);
+        Tensor<float> t2 = t1.max();
+        t2.backward();
+        std::vector<float> expected_grad = {0, 0, 0, 0, 1};
+        for (int i = 0; i < 5; i++)
+        {
+            REQUIRE((*t1.grad)[{i}] == expected_grad[i]);
+        }
+    }
 }
 
 TEST_CASE("Autograd works for the sum method with and without dim and keepdim")

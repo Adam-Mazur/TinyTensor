@@ -30,7 +30,6 @@ class Tensor
     Tensor<T> *operand1;
     Tensor<T> *operand2;
     std::function<void(Tensor*)> _backward;
-    bool intermediate;
 
     void add_backward();
     
@@ -67,6 +66,8 @@ class Tensor
     void add_reference();
 
     void release();
+
+    size_t get_hash();
 
     Tensor(const std::vector<size_t> &size, T value, bool requires_grad = false);
 
