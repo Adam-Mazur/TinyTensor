@@ -10,7 +10,6 @@
 #include <vector>
 #include <unordered_set>
 #include <stack>
-#include "tensor.h"
 
 template <typename T>
 TensorData<T>::TensorData(const std::vector<T> &data) : vec(data), reference_count(1)
@@ -318,6 +317,9 @@ Tensor<T> Tensor<T>::operator[](const std::vector<std::pair<int, int>> &indices)
         new_tensor.grad->shape = new_tensor.shape;
         new_tensor.grad->strides = new_tensor.strides;
         new_tensor.grad->offset = new_tensor.offset;
+        new_tensor.operand1 = this;
+        new_tensor.operand2 = nullptr;
+        new_tensor._backward = nullptr;
     }
     return new_tensor;
 };
@@ -380,6 +382,9 @@ Tensor<T> Tensor<T>::view(const std::vector<int> &size)
         new_tensor.grad->shape = new_tensor.shape;
         new_tensor.grad->strides = new_tensor.strides;
         new_tensor.grad->offset = new_tensor.offset;
+        new_tensor.operand1 = this;
+        new_tensor.operand2 = nullptr;
+        new_tensor._backward = nullptr;
     }
     return new_tensor;
 }
@@ -431,6 +436,9 @@ Tensor<T> Tensor<T>::transpose(int dim0, int dim1)
     {
         new_tensor.grad->shape = new_tensor.shape;
         new_tensor.grad->strides = new_tensor.strides;
+        new_tensor.operand1 = this;
+        new_tensor.operand2 = nullptr;
+        new_tensor._backward = nullptr;
     }
     return new_tensor;
 }

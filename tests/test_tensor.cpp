@@ -2222,6 +2222,32 @@ TEST_CASE("Autograd works with indexing on tensors")
             }
         }
     }
+
+    SECTION("Autograd works if indexing is in a longer chain of operations")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t2 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t3 = t1 + t2;
+        Tensor<float> t4 = t3[{{1, 3}, {1, 3}}];
+        Tensor<float> t5 = t4.sum();
+        t5.backward();
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                if (i >= 1 && i < 3 && j >= 1 && j < 3)
+                {
+                    REQUIRE_THAT(((*t1.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
+                    REQUIRE_THAT(((*t2.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
+                }
+                else
+                {
+                    REQUIRE_THAT(((*t1.grad)[{i, j}]), Catch::Matchers::WithinAbs(0.0f, 0.01f));
+                    REQUIRE_THAT(((*t2.grad)[{i, j}]), Catch::Matchers::WithinAbs(0.0f, 0.01f));
+                }
+            }
+        }
+    }
 }
 
 TEST_CASE("The += operator works correctly")
@@ -2734,6 +2760,45 @@ TEST_CASE("The unfold function works correctly")
             for (int k = 0; k < 4; k++)
             {
                 REQUIRE((*t1.grad)[{0, 0, j, k}] == expected_result[j * 4 + k]);
+            }
+        }
+    }
+}
+
+TEST_CASE("Check if autograd works for view and transpose")
+{
+    SECTION("Autograd works for view")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t2 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t3 = t1 + t2;
+        Tensor<float> t4 = t3.view({2, 8});
+        Tensor<float> t5 = t4.sum();
+        t5.backward();
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                REQUIRE_THAT(((*t1.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
+                REQUIRE_THAT(((*t2.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
+            }
+        }
+    }
+
+    SECTION("Autograd works for transpose")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t2 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t3 = t1 + t2;
+        Tensor<float> t4 = t3.transpose(0, 1);
+        Tensor<float> t5 = t4.sum();
+        t5.backward();
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                REQUIRE_THAT(((*t1.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
+                REQUIRE_THAT(((*t2.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
             }
         }
     }
