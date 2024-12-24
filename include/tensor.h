@@ -30,6 +30,7 @@ class Tensor
     Tensor<T> *operand1;
     Tensor<T> *operand2;
     std::function<void(Tensor*)> _backward;
+    bool intermediate;
 
     void add_backward();
     

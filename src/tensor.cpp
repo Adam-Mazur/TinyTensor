@@ -58,13 +58,8 @@ void Tensor<T>::release()
         if (data->reference_count == 0)
         {
             delete data;
-            if (grad != nullptr) 
-            {
-                delete grad;
-            }
         }
         data = nullptr;
-        grad = nullptr;
     }
 }
 
@@ -97,12 +92,13 @@ template <typename T> Tensor<T>::Tensor(const std::vector<size_t> &size, T value
     _backward = nullptr;
     operand1 = nullptr;
     operand2 = nullptr;
+    intermediate = false;
 }
 
 template <typename T>
 Tensor<T>::Tensor(const std::vector<T> &data, bool requires_grad)
     : data(new TensorData<T>(data)), shape({data.size()}), offset(0), strides({1}), 
-    _backward(nullptr), operand1(nullptr), operand2(nullptr)
+    _backward(nullptr), operand1(nullptr), operand2(nullptr), intermediate(false)
 {
     if (requires_grad)
     {
@@ -121,7 +117,7 @@ Tensor<T>::Tensor(const std::vector<T> &data, bool requires_grad)
 // Copy constructor
 template <typename T>
 Tensor<T>::Tensor(const Tensor<T> &other) : data(other.data), shape(other.shape), offset(other.offset), strides(other.strides), 
-        operand1(other.operand1), operand2(other.operand2), _backward(other._backward)
+        operand1(other.operand1), operand2(other.operand2), _backward(other._backward), intermediate(other.intermediate)
 {
     if (other.grad != nullptr)
     {
@@ -157,6 +153,7 @@ Tensor<T> &Tensor<T>::operator=(const Tensor<T> &other)
         operand1 = other.operand1;
         operand2 = other.operand2;
         _backward = other._backward;
+        intermediate = other.intermediate;
         add_reference();
     }
     return *this;
@@ -167,7 +164,7 @@ Tensor<T> &Tensor<T>::operator=(const Tensor<T> &other)
 template <typename T>
 Tensor<T>::Tensor(Tensor<T> &&other) noexcept
     : data(other.data), shape(other.shape), offset(other.offset), strides(other.strides), grad(other.grad),
-      operand1(other.operand1), operand2(other.operand2), _backward(other._backward)
+      operand1(other.operand1), operand2(other.operand2), _backward(other._backward), intermediate(other.intermediate)
 {
     other.data = nullptr;
     other.grad = nullptr;
@@ -192,11 +189,13 @@ Tensor<T> &Tensor<T>::operator=(Tensor<T> &&other) noexcept
         _backward = other._backward;
         other.data = nullptr;
         other.grad = nullptr;
+        intermediate = other.intermediate;
     }
     return *this;
 }
 
-template <typename T> Tensor<T> Tensor<T>::zeros(const std::vector<size_t> &size, bool requires_grad)
+template <typename T> 
+Tensor<T> Tensor<T>::zeros(const std::vector<size_t> &size, bool requires_grad)
 {
     return Tensor(size, static_cast<T>(0), requires_grad);
 }
@@ -207,7 +206,8 @@ Tensor<T> Tensor<T>::ones(const std::vector<size_t> &size, bool requires_grad)
     return Tensor(size, static_cast<T>(1), requires_grad);
 }
 
-template <typename T> Tensor<T> Tensor<T>::randn(const std::vector<size_t> &size, bool requires_grad)
+template <typename T> 
+Tensor<T> Tensor<T>::randn(const std::vector<size_t> &size, bool requires_grad)
 {
     std::default_random_engine generator;
     std::normal_distribution<T> distribution(static_cast<T>(0), static_cast<T>(1));
@@ -616,12 +616,15 @@ template <typename T>
 Tensor<T> Tensor<T>::operator+(T other)
 {
     Tensor<T> *other_tensor = new Tensor<T>({other});
+    other_tensor->intermediate = true;
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, *other_tensor, std::plus<>());
     if (new_tensor.grad != nullptr)
     {
         new_tensor._backward = &Tensor<T>::add_backward;
         new_tensor.operand1 = this;
         new_tensor.operand2 = other_tensor;
+    } else {
+        delete other_tensor;
     }
     return new_tensor;
 }
@@ -630,12 +633,15 @@ template <typename T>
 Tensor<T> Tensor<T>::operator-(T other)
 {
     Tensor<T> *other_tensor = new Tensor<T>({other});
+    other_tensor->intermediate = true;
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, *other_tensor, std::minus<>());
     if (new_tensor.grad != nullptr)
     {
         new_tensor._backward = &Tensor<T>::sub_backward;
         new_tensor.operand1 = this;
         new_tensor.operand2 = other_tensor;
+    } else {
+        delete other_tensor;
     }
     return new_tensor;
 }
@@ -644,12 +650,15 @@ template <typename T>
 Tensor<T> Tensor<T>::operator*(T other)
 {
     Tensor<T> *other_tensor = new Tensor<T>({other});
+    other_tensor->intermediate = true;
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, *other_tensor, std::multiplies<>());
     if (new_tensor.grad != nullptr)
     {
         new_tensor._backward = &Tensor<T>::mul_backward;
         new_tensor.operand1 = this;
         new_tensor.operand2 = other_tensor;
+    } else {
+        delete other_tensor;
     }
     return new_tensor;
 }
@@ -658,12 +667,15 @@ template <typename T>
 Tensor<T> Tensor<T>::operator/(T other)
 {
     Tensor<T> *other_tensor = new Tensor<T>({other});
+    other_tensor->intermediate = true;
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, *other_tensor, std::divides<>());
     if (new_tensor.grad != nullptr)
     {
         new_tensor._backward = &Tensor<T>::div_backward;
         new_tensor.operand1 = this;
         new_tensor.operand2 = other_tensor;
+    } else {
+        delete other_tensor;
     }
     return new_tensor;
 }
@@ -672,12 +684,15 @@ template <typename U>
 Tensor<U> operator/(U other, Tensor<U> &t)
 {
     Tensor<U> *other_tensor = new Tensor<U>({other});
+    other_tensor->intermediate = true;
     Tensor<U> new_tensor = Tensor<U>::broadcast(*other_tensor, t, std::divides<>());
     if (new_tensor.grad != nullptr)
     {
         new_tensor._backward = &Tensor<U>::div_backward;
         new_tensor.operand1 = other_tensor;
         new_tensor.operand2 = &t;
+    } else {
+        delete other_tensor;
     }
     return new_tensor;
 }
@@ -1061,7 +1076,14 @@ void Tensor<T>::backward()
     {
         // Call backward
         if (node->_backward != nullptr)
+        {
             (node->_backward)(node);
+        }
+
+        if (node->intermediate)
+        {
+            delete node;
+        }
     }
 }
 
@@ -1093,46 +1115,82 @@ Tensor<int> Tensor<T>::argmax()
 template <typename T> 
 Tensor<T> Tensor<T>::mean()
 {
-    Tensor<T> *new_tensor = new Tensor<T>(this->sum());
+    Tensor<T> *temp = new Tensor<T>(this->sum());
+    temp->intermediate = true;
     int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
-    return *new_tensor / static_cast<T>(num_of_elements);
+    Tensor<T> new_tensor = *temp / static_cast<T>(num_of_elements);
+    if (new_tensor.grad == nullptr)
+    {
+        delete temp;
+    }
+    return new_tensor;
 }
 
 template <typename T> 
 Tensor<T> Tensor<T>::mean(const std::vector<int> &dim, bool keep_dim)
 {
-    Tensor<T> *new_tensor = new Tensor<T>(this->sum(dim, keep_dim));
+    Tensor<T> *temp = new Tensor<T>(this->sum(dim, keep_dim));
+    temp->intermediate = true;
     float num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
     float num_of_elements_new =
-        std::accumulate(new_tensor->shape.begin(), new_tensor->shape.end(), 1, std::multiplies<size_t>());
-    return *new_tensor * static_cast<T>(num_of_elements_new / num_of_elements);
+        std::accumulate(temp->shape.begin(), temp->shape.end(), 1, std::multiplies<size_t>());
+    Tensor<T> new_tensor = *temp * static_cast<T>(num_of_elements_new / num_of_elements);
+    if (new_tensor.grad == nullptr)
+    {
+        delete temp;
+    }
+    return new_tensor;
 }
 
 template <typename T> 
 Tensor<T> Tensor<T>::var()
 {
     Tensor<T> *mean = new Tensor<T>(this->mean());
+    mean->intermediate = true;
     Tensor<T> *diff = new Tensor<T>(*this - *mean); 
+    diff->intermediate = true;  
     Tensor<T> *squared_diff = new Tensor<T>((*diff) * (*diff));
+    squared_diff->intermediate = true;
     float num_of_elements =
         std::accumulate(this->shape.begin(), this->shape.end(), 1, std::multiplies<size_t>());
     Tensor<T> *sum = new Tensor<T>(squared_diff->sum());
-    return *sum / static_cast<T>(num_of_elements-1);
+    sum->intermediate = true;
+    Tensor<T> new_tensor = *sum / static_cast<T>(num_of_elements-1);
+    if (new_tensor.grad == nullptr)
+    {
+        delete mean;
+        delete diff;
+        delete squared_diff;
+        delete sum;
+    }
+    return new_tensor;
 }
 
 template <typename T> 
 Tensor<T> Tensor<T>::var(const std::vector<int> &dim, bool keep_dim)
 {
     Tensor<T> *mean = new Tensor<T>(this->mean(dim, true));
+    mean->intermediate = true;  
     Tensor<T> *diff = new Tensor<T>(*this - *mean);
+    diff->intermediate = true;
     Tensor<T> *squared_diff = new Tensor<T>((*diff) * (*diff));
+    squared_diff->intermediate = true;
     float num_of_elements = 1;
     for (int i : dim)
     {
         num_of_elements *= shape[i];
     }
     Tensor<T> *sum = new Tensor<T>(squared_diff->sum(dim, keep_dim));
-    return *sum / static_cast<T>(num_of_elements - 1);
+    sum->intermediate = true;
+    Tensor<T> new_tensor = *sum / static_cast<T>(num_of_elements-1);
+    if (new_tensor.grad == nullptr)
+    {
+        delete mean;
+        delete diff;
+        delete squared_diff;
+        delete sum;
+    }
+    return new_tensor;
 }
 
 template <typename T>
@@ -1263,9 +1321,18 @@ template <typename T>
 Tensor<T> Tensor<T>::sigmoid(Tensor<T> &t)
 {
     Tensor<T> *temp1 = new Tensor<T>(-t);
+    temp1->intermediate = true;
     Tensor<T> *temp2 = new Tensor<T>(temp1->exp());
+    temp2->intermediate = true;
     Tensor<T> *temp3 = new Tensor<T>(*temp2 + static_cast<T>(1));
-    return static_cast<T>(1) / *temp3;
+    temp3->intermediate = true;
+    Tensor<T> new_tensor = static_cast<T>(1) / *temp3;
+    if (new_tensor.grad == nullptr) {
+        delete temp1;
+        delete temp2;
+        delete temp3;
+    }
+    return new_tensor;
 }
 
 template <typename T>
@@ -1313,18 +1380,32 @@ template <typename T>
 Tensor<T> Tensor<T>::softmax(Tensor<T> &t, int dim)
 {
     Tensor<T> *temp1 = new Tensor<T>(t.max());
+    temp1->intermediate = true;
     Tensor<T> *temp2 = new Tensor<T>(t - *temp1);
+    temp2->intermediate = true;
     Tensor<T> *temp3 = new Tensor<T>(temp2->exp());
+    temp3->intermediate = true;
     Tensor<T> *temp4 = new Tensor<T>(temp3->sum({dim}, true));
-    return *temp3 / *temp4;
+    temp4->intermediate = true;
+    Tensor<T> new_tensor = *temp3 / *temp4;
+    if (new_tensor.grad == nullptr) {
+        delete temp1;
+        delete temp2;
+        delete temp3;
+        delete temp4;
+    }
+    return new_tensor;
 }
 
 template <typename T>
 Tensor<T> Tensor<T>::cross_entropy(Tensor<T> &input, Tensor<int> &target)
 {
     Tensor<T> *softmax_output = new Tensor<T>(Tensor<T>::softmax(input, 1));
+    softmax_output->intermediate = true;
     Tensor<T> *log_softmax_output = new Tensor<T>(softmax_output->log());
+    log_softmax_output->intermediate = true;
     Tensor<T> *log_probs = new Tensor<T>(Tensor<T>::zeros({input.shape[0]}, input.grad != nullptr));
+    log_probs->intermediate = true;
     for (int i = 0; i < input.shape[0]; i++)
     {
         (*log_probs)[{i}] = -(*log_softmax_output)[{i, target[{i}]}];
@@ -1341,6 +1422,10 @@ Tensor<T> Tensor<T>::cross_entropy(Tensor<T> &input, Tensor<int> &target)
         output._backward =
             std::bind(&Tensor<T>::cross_entropy_backward, std::placeholders::_1, n, target_int);
         output.operand1 = log_softmax_output;
+    } else {
+        delete softmax_output;
+        delete log_softmax_output;
+        delete log_probs;
     }
     return output;
 }
@@ -1895,4 +1980,8 @@ template <typename T>
 Tensor<T>::~Tensor()
 {
     release();
+    if (grad != nullptr)
+    {
+        delete grad;
+    }
 }
