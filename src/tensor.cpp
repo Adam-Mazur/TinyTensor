@@ -177,6 +177,7 @@ Tensor<T> &Tensor<T>::operator=(Tensor<T> &&other) noexcept
     if (this != &other)
     {
         release();
+        delete grad;
         data = other.data;
         shape = other.shape;
         offset = other.offset;
@@ -899,8 +900,12 @@ void Tensor<T>::mul_backward()
             dim_r--;
             dim_op--;
         }
+        Tensor<T> op2_no_grad = Tensor<T>(*operand2);
+        delete op2_no_grad.grad;
+        op2_no_grad.grad = nullptr;
+        
         std::vector<int> new_shape(operand1->shape.begin(), operand1->shape.end());
-        Tensor<T> reduced_grad = ((*this->grad) * (*operand2)).sum(dim_to_reduce, true).view(new_shape);
+        Tensor<T> reduced_grad = ((*this->grad) * op2_no_grad).sum(dim_to_reduce, true).view(new_shape);
         (*operand1->grad) += reduced_grad;
     }
     if (operand2->grad != nullptr)
@@ -917,8 +922,12 @@ void Tensor<T>::mul_backward()
             dim_r--;
             dim_op--;
         }
+        Tensor<T> op1_no_grad = Tensor<T>(*operand1);
+        delete op1_no_grad.grad;
+        op1_no_grad.grad = nullptr;
+
         std::vector<int> new_shape(operand2->shape.begin(), operand2->shape.end());
-        Tensor<T> reduced_grad = ((*this->grad) * (*operand1)).sum(dim_to_reduce, true).view(new_shape);
+        Tensor<T> reduced_grad = ((*this->grad) * op1_no_grad).sum(dim_to_reduce, true).view(new_shape);
         (*operand2->grad) += reduced_grad;
     }
 }
@@ -944,8 +953,12 @@ void Tensor<T>::div_backward()
             dim_r--;
             dim_op--;
         }
+        Tensor<T> op2_no_grad = Tensor<T>(*operand2);
+        delete op2_no_grad.grad;
+        op2_no_grad.grad = nullptr;
+
         std::vector<int> new_shape(operand1->shape.begin(), operand1->shape.end());
-        Tensor<T> temp1 = static_cast<T>(1)/(*operand2);
+        Tensor<T> temp1 = static_cast<T>(1) / op2_no_grad;
         Tensor<T> reduced_grad = ((*this->grad) * temp1).sum(dim_to_reduce, true).view(new_shape);
         (*operand1->grad) += reduced_grad;
     }
@@ -963,9 +976,17 @@ void Tensor<T>::div_backward()
             dim_r--;
             dim_op--;
         }
+        Tensor<T> op2_no_grad = Tensor<T>(*operand2);
+        delete op2_no_grad.grad;
+        op2_no_grad.grad = nullptr;
+        
+        Tensor<T> op1_no_grad = Tensor<T>(*operand1);
+        delete op1_no_grad.grad;
+        op1_no_grad.grad = nullptr;
+        
         std::vector<int> new_shape(operand2->shape.begin(), operand2->shape.end());
-        Tensor<T> temp1 = (*operand2) * (*operand2);
-        Tensor<T> temp2 = -(*operand1) / temp1;
+        Tensor<T> temp1 = op2_no_grad * op2_no_grad;
+        Tensor<T> temp2 = -op1_no_grad / temp1;
         Tensor<T> reduced_grad = ((*this->grad) * temp2).sum(dim_to_reduce, true).view(new_shape);
         (*operand2->grad) += reduced_grad;
     }
@@ -1028,19 +1049,28 @@ void Tensor<T>::backward()
     std::vector<Tensor<T> *> topo;
     std::unordered_set<size_t> visited;
     std::stack<Tensor<T> *> stack({this});
+    std::unordered_set<Tensor<T> *> to_remove;
     while (!stack.empty())
     {
         Tensor<T> *node = stack.top();
         if (visited.count(node->get_hash()) == 0)
         {
             visited.insert(node->get_hash());
-            if (node->operand1 != nullptr && visited.count(node->operand1->get_hash()) == 0)
-            {
-                stack.push(node->operand1);
+            if (node->operand1 != nullptr)
+            { 
+                to_remove.insert(node->operand1);
+                if (visited.count(node->operand1->get_hash()) == 0)
+                {
+                    stack.push(node->operand1);
+                }
             }
-            if (node->operand2 != nullptr && visited.count(node->operand2->get_hash()) == 0)
+            if (node->operand2 != nullptr)
             {
-                stack.push(node->operand2);
+                to_remove.insert(node->operand2);
+                if (visited.count(node->operand2->get_hash()) == 0)
+                {
+                    stack.push(node->operand2);
+                }
             }
         } 
         else 
@@ -1063,12 +1093,9 @@ void Tensor<T>::backward()
             (node->_backward)(node);
         }
     }
-    for (Tensor<T> * node : topo)
+    for (Tensor<T> * node : to_remove)
     {
-        if (node != this)
-        {
-            delete node;
-        }
+        delete node;
     }
 }
 
@@ -1170,7 +1197,11 @@ void Tensor<T>::sqrt_backward()
     }
     if (operand1->grad != nullptr)
     {
-        Tensor<T> temp = static_cast<T>(0.5) / (*this);
+        Tensor<T> this_no_grad = Tensor<T>(*this);
+        delete this_no_grad.grad;
+        this_no_grad.grad = nullptr;
+        
+        Tensor<T> temp = static_cast<T>(0.5) / this_no_grad;
         Tensor<T> temp2 = (*this->grad) * temp;
         (*operand1->grad) += temp2;
     }
@@ -1201,7 +1232,15 @@ void Tensor<T>::pow_backward(T exponent)
     }
     if (operand1->grad != nullptr)
     {
-        Tensor<T> temp =  (*this) / (*operand1);
+        Tensor<T> op1_no_grad = Tensor<T>(*operand1);
+        delete op1_no_grad.grad;
+        op1_no_grad.grad = nullptr;
+
+        Tensor<T> this_no_grad = Tensor<T>(*this);
+        delete this_no_grad.grad;
+        this_no_grad.grad = nullptr;
+
+        Tensor<T> temp =  this_no_grad / op1_no_grad;
         Tensor<T> temp2 = temp * exponent;
         Tensor<T> temp3 = (*this->grad) * temp2;
         (*operand1->grad) += temp3;
@@ -1233,7 +1272,11 @@ void Tensor<T>::exp_backward()
     }
     if (operand1->grad != nullptr)
     {
-        Tensor<T> temp = (*this->grad) * (*this);
+        Tensor<T> this_no_grad = Tensor<T>(*this);
+        delete this_no_grad.grad;
+        this_no_grad.grad = nullptr;
+
+        Tensor<T> temp = (*this->grad) * this_no_grad;
         (*operand1->grad) += temp;
     }
 }
@@ -1263,7 +1306,11 @@ void Tensor<T>::log_backward()
     }
     if (operand1->grad != nullptr)
     {
-        Tensor<T> temp = static_cast<T>(1) / (*operand1);
+        Tensor<T> op1_no_grad = Tensor<T>(*operand1);
+        delete op1_no_grad.grad;
+        op1_no_grad.grad = nullptr;
+
+        Tensor<T> temp = static_cast<T>(1) / op1_no_grad;
         Tensor<T> temp2 = (*this->grad) * temp;
         (*operand1->grad) += temp2;
     }
@@ -1304,6 +1351,9 @@ void Tensor<T>::relu_backward()
     if (operand1->grad != nullptr)
     {
         Tensor<T> temp = operand1->clone();
+        delete temp.grad;
+        temp.grad = nullptr;
+
         for (int i = 0; i < operand1->data->size(); i++)
         {
             if ((*operand1->data)[i] > 0)
@@ -1334,14 +1384,15 @@ Tensor<T> Tensor<T>::cross_entropy(Tensor<T> &input, Tensor<int> &target)
 {
     Tensor<T> softmax_output = Tensor<T>::softmax(input, 1);
     Tensor<T> log_softmax_output = softmax_output.log();
-    Tensor<T> log_probs = Tensor<T>::zeros({input.shape[0]}, input.grad != nullptr);
+    Tensor<T> log_probs = Tensor<T>::zeros({input.shape[0]});
     for (int i = 0; i < input.shape[0]; i++)
     {
         log_probs[{i}] = -log_softmax_output[{i, target[{i}]}];
     }
     Tensor<T> output = log_probs.mean();
-    if (output.grad != nullptr)
+    if (input.grad != nullptr)
     {
+        output.grad = new Tensor<T>({0});
         int n = input.shape[0];
         std::vector<int> target_int(n);
         for (int i = 0; i < n; i++)
@@ -1452,7 +1503,7 @@ Tensor<T> Tensor<T>::mm(Tensor &t1, Tensor &t2, Tensor *out)
     {
         throw std::invalid_argument("The number of columns of the first tensor must be equal to the number of rows of the second tensor.");
     }
-    Tensor<T> new_tensor = Tensor<T>({0}, t1.grad != nullptr || t2.grad != nullptr);
+    Tensor<T> new_tensor = Tensor<T>({0});
     if (out == nullptr)
     {
         std::vector<size_t> new_shape = {t1.shape[0], t2.shape[1]};
@@ -1492,13 +1543,21 @@ void Tensor<T>::mm_backward()
     }
     if (operand1->grad != nullptr)
     {
-        Tensor<T> temp = operand2->transpose(0, 1);
+        Tensor<T> op2_no_grad = Tensor<T>(*operand2);
+        delete op2_no_grad.grad;
+        op2_no_grad.grad = nullptr;
+
+        Tensor<T> temp = op2_no_grad.transpose(0, 1);
         Tensor<T> new_tensor_grad = Tensor<T>::mm(*this->grad, temp);
         (*operand1->grad) += new_tensor_grad;
     }
     if (operand2->grad != nullptr)
     {
-        Tensor<T> temp = operand1->transpose(0, 1);
+        Tensor<T> op1_no_grad = Tensor<T>(*operand1);
+        delete op1_no_grad.grad;
+        op1_no_grad.grad = nullptr;
+
+        Tensor<T> temp = op1_no_grad.transpose(0, 1);
         Tensor<T> new_tensor_grad = Tensor<T>::mm(temp, *this->grad);
         (*operand2->grad) += new_tensor_grad;
     }
@@ -1573,6 +1632,14 @@ Tensor<T>& Tensor<T>::operator+=(Tensor<T> &other)
 template <typename T>
 Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
 {
+    Tensor<T> t1_no_grad = Tensor<T>(t1);
+    delete t1_no_grad.grad;
+    t1_no_grad.grad = nullptr;
+
+    Tensor<T> t2_no_grad = Tensor<T>(t2);
+    delete t2_no_grad.grad;
+    t2_no_grad.grad = nullptr;
+
     std::vector<int> t1_shape(t1.shape.begin(), t1.shape.end());
     std::vector<int> t2_shape(t2.shape.begin(), t2.shape.end());
     bool append_one = false;
@@ -1616,17 +1683,17 @@ Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
     new_shape[new_shape.size() - 2] = t1_shape[t1_shape.size() - 2];
     new_shape[new_shape.size() - 1] = t2_shape[t2_shape.size() - 1];
     
-    Tensor<T> new_tensor = Tensor<T>::zeros(new_shape, t1.grad != nullptr || t2.grad != nullptr);
+    Tensor<T> new_tensor = Tensor<T>::zeros(new_shape);
     
-    Tensor<T> op1 = t1;
-    Tensor<T> op2 = t2;
+    Tensor<T> op1 = t1_no_grad;
+    Tensor<T> op2 = t2_no_grad;
     if (t1_shape.size() != t1.shape.size())
     {
-        op1 = t1.view(t1_shape);
+        op1 = t1_no_grad.view(t1_shape);
     }
     if (t2_shape.size() != t2.shape.size())
     {
-        op2 = t2.view(t2_shape);
+        op2 = t2_no_grad.view(t2_shape);
     }
 
     if (new_shape.size() == 2)
@@ -1717,8 +1784,9 @@ Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
         new_shape2.erase(new_shape2.begin() + new_shape2.size() - 2);
         new_tensor = new_tensor.view(new_shape2);
     }
-    if (new_tensor.grad != nullptr)
+    if (t1.grad != nullptr || t1.grad != nullptr)
     {
+        new_tensor.grad = new Tensor<T>(Tensor<T>::zeros(new_tensor.shape));
         std::vector<int> out_shape(new_shape.begin(), new_shape.end());
         new_tensor._backward = std::bind(&Tensor<T>::matmul_backward, std::placeholders::_1, t1_shape, t2_shape, out_shape);
         new_tensor.operand1 = new Tensor<T>(t1);
@@ -1737,7 +1805,11 @@ void Tensor<T>::matmul_backward(std::vector<int> &t1_shape, std::vector<int> &t2
     int n_dim = new_shape.size();
     if (operand1->grad != nullptr)
     {
-        Tensor<T> op2 = operand2->view(t2_shape);
+        Tensor<T> op2_no_grad = Tensor<T>(*operand2);
+        delete op2_no_grad.grad;
+        op2_no_grad.grad = nullptr;
+        
+        Tensor<T> op2 = op2_no_grad.view(t2_shape);
         Tensor<T> out_grad = this->grad->view(new_shape);
 
         Tensor<T> temp = op2.transpose(n_dim - 2, n_dim - 1);
@@ -1758,7 +1830,11 @@ void Tensor<T>::matmul_backward(std::vector<int> &t1_shape, std::vector<int> &t2
     }
     if (operand2->grad != nullptr)
     {
-        Tensor<T> op1 = operand1->view(t1_shape);
+        Tensor<T> op1_no_grad = Tensor<T>(*operand1);
+        delete op1_no_grad.grad;
+        op1_no_grad.grad = nullptr;
+
+        Tensor<T> op1 = op1_no_grad.view(t1_shape);
         Tensor<T> out_grad = this->grad->view(new_shape);
 
         Tensor<T> temp = op1.transpose(n_dim - 2, n_dim - 1);

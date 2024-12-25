@@ -1916,7 +1916,7 @@ TEST_CASE("The cross entropy loss works correctly")
 {
     SECTION("Cross entropy loss for a batch of examples")
     {
-        Tensor<float> logits = Tensor<float>({1.0, 2.0, 3.0, 1.0, 2.0, 3.0}, true).view({2, 3});
+        Tensor<float> logits = Tensor<float>({1.0, 2.0, 3.0, 1.0, 2.0, 3.0}).view({2, 3});
         Tensor<int> target = Tensor<int>({2, 1});
         Tensor<float> loss = Tensor<float>::cross_entropy(logits, target);
         REQUIRE_THAT((loss[{0}]), Catch::Matchers::WithinRel(0.9076f, 0.01f));
@@ -2139,6 +2139,7 @@ TEST_CASE("The mm method works correctly")
         REQUIRE((*out)[{2, 0}] == 138);
         REQUIRE((*out)[{2, 1}] == 114);
         REQUIRE((*out)[{2, 2}] == 90);
+        delete out;
     }
 }
 
