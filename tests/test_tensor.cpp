@@ -2822,6 +2822,7 @@ TEST_CASE("Autograd works even if you reassing the result to the same variable")
     SECTION("Addition")
     {
         Tensor<float> t1 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t1_copy = t1;
         Tensor<float> t2 = Tensor<float>::ones({4, 4}, true);
         t1 = t1 + t2;
         Tensor<float> t3 = t1.sum();
@@ -2830,8 +2831,43 @@ TEST_CASE("Autograd works even if you reassing the result to the same variable")
         {
             for (int j = 0; j < 4; j++)
             {
-                REQUIRE_THAT(((*t1.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
+                REQUIRE_THAT(((*t1_copy.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
                 REQUIRE_THAT(((*t2.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
+            }
+        }
+    }
+    SECTION("Multiplication")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t1_copy = t1;
+        Tensor<float> t2 = Tensor<float>::ones({4, 4}, true);
+        t1 = t1 * t2;
+        Tensor<float> t3 = t1.sum();
+        t3.backward();
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                REQUIRE_THAT(((*t1_copy.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
+                REQUIRE_THAT(((*t2.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
+            }
+        }
+    }
+
+    SECTION("Matrix Multiplication")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t1_copy = t1;
+        Tensor<float> t2 = Tensor<float>::ones({4, 4}, true);
+        t1 = Tensor<float>::matmul(t1, t2);
+        Tensor<float> t3 = t1.sum();
+        t3.backward();
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                REQUIRE_THAT(((*t1_copy.grad)[{i, j}]), Catch::Matchers::WithinAbs(4.0f, 0.01f));
+                REQUIRE_THAT(((*t2.grad)[{i, j}]), Catch::Matchers::WithinAbs(4.0f, 0.01f));
             }
         }
     }
