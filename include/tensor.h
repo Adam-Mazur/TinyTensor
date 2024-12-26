@@ -83,6 +83,8 @@ class Tensor
     
     Tensor(const std::vector<T> &data, bool requires_grad = false);
 
+    Tensor();
+
     Tensor(const Tensor &other);
 
     Tensor &operator=(const Tensor &other);

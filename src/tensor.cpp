@@ -113,6 +113,12 @@ Tensor<T>::Tensor(const std::vector<T> &data, bool requires_grad)
     }
 }
 
+template <typename T>
+Tensor<T>::Tensor() : data(nullptr), grad(nullptr), offset(0), shape({}), strides({}), 
+            operand1(nullptr), operand2(nullptr), _backward() 
+{
+}
+
 // Copy constructor
 template <typename T>
 Tensor<T>::Tensor(const Tensor<T> &other) : data(other.data), shape(other.shape), offset(other.offset), strides(other.strides), 
@@ -177,7 +183,10 @@ Tensor<T> &Tensor<T>::operator=(Tensor<T> &&other) noexcept
     if (this != &other)
     {
         release();
-        delete grad;
+        if (grad != nullptr)
+        {
+            delete grad;
+        }
         data = other.data;
         shape = other.shape;
         offset = other.offset;
@@ -1503,7 +1512,7 @@ Tensor<T> Tensor<T>::mm(Tensor &t1, Tensor &t2, Tensor *out)
     {
         throw std::invalid_argument("The number of columns of the first tensor must be equal to the number of rows of the second tensor.");
     }
-    Tensor<T> new_tensor = Tensor<T>({0});
+    Tensor<T> new_tensor;
     if (out == nullptr)
     {
         std::vector<size_t> new_shape = {t1.shape[0], t2.shape[1]};
