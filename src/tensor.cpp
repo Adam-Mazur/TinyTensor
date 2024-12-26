@@ -143,6 +143,10 @@ Tensor<T> &Tensor<T>::operator=(const Tensor<T> &other)
     if (this != &other)
     {
         release();
+        if (grad != nullptr)
+        {
+            delete grad;
+        }
         data = other.data;
         shape = other.shape;
         offset = other.offset;
