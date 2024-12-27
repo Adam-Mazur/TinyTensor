@@ -180,6 +180,8 @@ class Tensor
 
     static Tensor unfold(Tensor &in, int kernel_size, int padding, int stride);
 
+    void zero_grad();
+    
     ~Tensor();
 };
 

@@ -1949,6 +1949,15 @@ size_t Tensor<T>::get_hash()
 }
 
 template <typename T>
+void Tensor<T>::zero_grad()
+{
+    if (grad != nullptr)
+    {
+        grad->data->vec.assign(grad->data->size(), static_cast<T>(0));
+    }
+}
+
+template <typename T>
 Tensor<T>::~Tensor()
 {
     release();

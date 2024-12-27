@@ -3019,3 +3019,22 @@ TEST_CASE("Autograd works even if you reassing the result to the same variable")
         }
     }
 }
+
+TEST_CASE("The zero_grad method works correctly")
+{
+    SECTION("Zeroing gradients for a simple tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t2 = t1 * 2;
+        Tensor<float> t3 = t2.sum();
+        t3.backward();
+        t1.zero_grad();
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                REQUIRE((*t1.grad)[{i, j}] == 0.0f);
+            }
+        }
+    }
+}
