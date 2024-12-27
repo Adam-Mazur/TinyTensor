@@ -323,7 +323,7 @@ Tensor<T> Tensor<T>::operator[](const std::vector<std::pair<int, int>> &indices)
     {
         throw std::invalid_argument("The resulting vector can't have 0 dimensions.");
     }
-    if (new_tensor.grad != nullptr) 
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled) 
     {
         new_tensor.grad->shape = new_tensor.shape;
         new_tensor.grad->strides = new_tensor.strides;
@@ -388,7 +388,7 @@ Tensor<T> Tensor<T>::view(const std::vector<int> &size)
         new_tensor.strides[i] = acc;
         acc *= new_size[i];
     }
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor.grad->shape = new_tensor.shape;
         new_tensor.grad->strides = new_tensor.strides;
@@ -443,7 +443,7 @@ Tensor<T> Tensor<T>::transpose(int dim0, int dim1)
     new_tensor.strides[dim1] = strides[dim0];
     new_tensor.shape[dim0] = shape[dim1];
     new_tensor.shape[dim1] = shape[dim0];
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor.grad->shape = new_tensor.shape;
         new_tensor.grad->strides = new_tensor.strides;
@@ -559,7 +559,7 @@ template <typename T>
 Tensor<T> Tensor<T>::operator+(Tensor<T> &other)
 {
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other, std::plus<>());
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::add_backward;
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -572,7 +572,7 @@ template <typename T>
 Tensor<T> Tensor<T>::operator-(Tensor<T> &other)
 {
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other, std::minus<>());
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::sub_backward;
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -589,7 +589,7 @@ Tensor<T> Tensor<T>::operator-()
     {
         value = -value;
     }
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::minus_backward;
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -601,7 +601,7 @@ template <typename T>
 Tensor<T> Tensor<T>::operator*(Tensor<T> &other)
 {
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other, std::multiplies<>());
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::mul_backward;
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -614,7 +614,7 @@ template <typename T>
 Tensor<T> Tensor<T>::operator/(Tensor<T> &other)
 {
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other, std::divides<>());
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::div_backward;
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -628,7 +628,7 @@ Tensor<T> Tensor<T>::operator+(T other)
 {
     Tensor<T> other_tensor = Tensor<T>({other});
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other_tensor, std::plus<>());
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::add_backward;
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -642,7 +642,7 @@ Tensor<T> Tensor<T>::operator-(T other)
 {
     Tensor<T> other_tensor = Tensor<T>({other});
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other_tensor, std::minus<>());
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::sub_backward;
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -656,7 +656,7 @@ Tensor<T> Tensor<T>::operator*(T other)
 {
     Tensor<T> other_tensor = Tensor<T>({other});
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other_tensor, std::multiplies<>());
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::mul_backward;
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -670,7 +670,7 @@ Tensor<T> Tensor<T>::operator/(T other)
 {
     Tensor<T> other_tensor = Tensor<T>({other});
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other_tensor, std::divides<>());
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::div_backward;
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -684,7 +684,7 @@ Tensor<U> operator/(U other, Tensor<U> &t)
 {
     Tensor<U> other_tensor = Tensor<U>({other});
     Tensor<U> new_tensor = Tensor<U>::broadcast(other_tensor, t, std::divides<>());
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<U>::div_backward;
         new_tensor.operand1 = new Tensor<U>(other_tensor);
@@ -715,7 +715,7 @@ Tensor<T> Tensor<T>::sum()
             }
         }
     }
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::sum_backward;
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -778,7 +778,7 @@ Tensor<T> Tensor<T>::sum(const std::vector<int> &dim, bool keep_dim)
         }
         new_tensor = new_tensor.view(final_shape);
     }
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = std::bind(&Tensor<T>::sum2_backward, std::placeholders::_1, dim, keep_dim);
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -895,6 +895,7 @@ void Tensor<T>::minus_backward()
 template <typename T> 
 void Tensor<T>::mul_backward()
 {
+    NoGradGuard::is_enabled = true;
     if (this->grad == nullptr)
     {
         std::invalid_argument("Can't call backward if the gradient is nullptr.");
@@ -913,12 +914,8 @@ void Tensor<T>::mul_backward()
             dim_r--;
             dim_op--;
         }
-        Tensor<T> op2_no_grad = Tensor<T>(*operand2);
-        delete op2_no_grad.grad;
-        op2_no_grad.grad = nullptr;
-        
         std::vector<int> new_shape(operand1->shape.begin(), operand1->shape.end());
-        Tensor<T> reduced_grad = ((*this->grad) * op2_no_grad).sum(dim_to_reduce, true).view(new_shape);
+        Tensor<T> reduced_grad = ((*this->grad) * (*operand2)).sum(dim_to_reduce, true).view(new_shape);
         (*operand1->grad) += reduced_grad;
     }
     if (operand2->grad != nullptr)
@@ -935,19 +932,17 @@ void Tensor<T>::mul_backward()
             dim_r--;
             dim_op--;
         }
-        Tensor<T> op1_no_grad = Tensor<T>(*operand1);
-        delete op1_no_grad.grad;
-        op1_no_grad.grad = nullptr;
-
         std::vector<int> new_shape(operand2->shape.begin(), operand2->shape.end());
-        Tensor<T> reduced_grad = ((*this->grad) * op1_no_grad).sum(dim_to_reduce, true).view(new_shape);
+        Tensor<T> reduced_grad = ((*this->grad) * (*operand1)).sum(dim_to_reduce, true).view(new_shape);
         (*operand2->grad) += reduced_grad;
     }
+    NoGradGuard::is_enabled = false;
 }
 
 template <typename T> 
 void Tensor<T>::div_backward()
 {
+    NoGradGuard::is_enabled = true;
     if (this->grad == nullptr)
     {
         std::invalid_argument("Can't call backward if the gradient is nullptr.");
@@ -966,12 +961,8 @@ void Tensor<T>::div_backward()
             dim_r--;
             dim_op--;
         }
-        Tensor<T> op2_no_grad = Tensor<T>(*operand2);
-        delete op2_no_grad.grad;
-        op2_no_grad.grad = nullptr;
-
         std::vector<int> new_shape(operand1->shape.begin(), operand1->shape.end());
-        Tensor<T> temp1 = static_cast<T>(1) / op2_no_grad;
+        Tensor<T> temp1 = static_cast<T>(1) / (*operand2);
         Tensor<T> reduced_grad = ((*this->grad) * temp1).sum(dim_to_reduce, true).view(new_shape);
         (*operand1->grad) += reduced_grad;
     }
@@ -988,21 +979,14 @@ void Tensor<T>::div_backward()
             }
             dim_r--;
             dim_op--;
-        }
-        Tensor<T> op2_no_grad = Tensor<T>(*operand2);
-        delete op2_no_grad.grad;
-        op2_no_grad.grad = nullptr;
-        
-        Tensor<T> op1_no_grad = Tensor<T>(*operand1);
-        delete op1_no_grad.grad;
-        op1_no_grad.grad = nullptr;
-        
+        }        
         std::vector<int> new_shape(operand2->shape.begin(), operand2->shape.end());
-        Tensor<T> temp1 = op2_no_grad * op2_no_grad;
-        Tensor<T> temp2 = -op1_no_grad / temp1;
+        Tensor<T> temp1 = (*operand2) * (*operand2);
+        Tensor<T> temp2 = -(*operand1) / temp1;
         Tensor<T> reduced_grad = ((*this->grad) * temp2).sum(dim_to_reduce, true).view(new_shape);
         (*operand2->grad) += reduced_grad;
     }
+    NoGradGuard::is_enabled = false;
 }
 
 template <typename T> 
@@ -1120,7 +1104,7 @@ Tensor<T> Tensor<T>::max()
     new_tensor.offset = argmax;
     new_tensor.shape = std::vector<size_t>({1});
     new_tensor.strides = std::vector<int>({0});
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor.grad->shape = new_tensor.shape;
         new_tensor.grad->strides = new_tensor.strides;
@@ -1193,7 +1177,7 @@ Tensor<T> Tensor<T>::sqrt()
     {
         value = std::sqrt(value);
     }
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::sqrt_backward;
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -1204,20 +1188,18 @@ Tensor<T> Tensor<T>::sqrt()
 template <typename T>
 void Tensor<T>::sqrt_backward()
 {
+    NoGradGuard::is_enabled = true;
     if (this->grad == nullptr)
     {
         std::invalid_argument("Can't call backward if the gradient is nullptr.");
     }
     if (operand1->grad != nullptr)
     {
-        Tensor<T> this_no_grad = Tensor<T>(*this);
-        delete this_no_grad.grad;
-        this_no_grad.grad = nullptr;
-        
-        Tensor<T> temp = static_cast<T>(0.5) / this_no_grad;
+        Tensor<T> temp = static_cast<T>(0.5) / (*this);
         Tensor<T> temp2 = (*this->grad) * temp;
         (*operand1->grad) += temp2;
     }
+    NoGradGuard::is_enabled = false;
 }
 
 template <typename T>
@@ -1228,7 +1210,7 @@ Tensor<T> Tensor<T>::pow(T exponent)
     {
         value = std::pow(value, exponent);
     }
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = std::bind(&Tensor<T>::pow_backward, std::placeholders::_1, exponent);
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -1239,25 +1221,19 @@ Tensor<T> Tensor<T>::pow(T exponent)
 template <typename T>
 void Tensor<T>::pow_backward(T exponent)
 {
+    NoGradGuard::is_enabled = true;
     if (this->grad == nullptr)
     {
         std::invalid_argument("Can't call backward if the gradient is nullptr.");
     }
     if (operand1->grad != nullptr)
     {
-        Tensor<T> op1_no_grad = Tensor<T>(*operand1);
-        delete op1_no_grad.grad;
-        op1_no_grad.grad = nullptr;
-
-        Tensor<T> this_no_grad = Tensor<T>(*this);
-        delete this_no_grad.grad;
-        this_no_grad.grad = nullptr;
-
-        Tensor<T> temp =  this_no_grad / op1_no_grad;
+        Tensor<T> temp =  (*this) / (*operand1);
         Tensor<T> temp2 = temp * exponent;
         Tensor<T> temp3 = (*this->grad) * temp2;
         (*operand1->grad) += temp3;
     }
+    NoGradGuard::is_enabled = false;
 }
 
 template <typename T>
@@ -1268,7 +1244,7 @@ Tensor<T> Tensor<T>::exp()
     {
         value = std::exp(value);
     }
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::exp_backward;
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -1279,19 +1255,17 @@ Tensor<T> Tensor<T>::exp()
 template <typename T>
 void Tensor<T>::exp_backward()
 {
+    NoGradGuard::is_enabled = true;
     if (this->grad == nullptr)
     {
         std::invalid_argument("Can't call backward if the gradient is nullptr.");
     }
     if (operand1->grad != nullptr)
     {
-        Tensor<T> this_no_grad = Tensor<T>(*this);
-        delete this_no_grad.grad;
-        this_no_grad.grad = nullptr;
-
-        Tensor<T> temp = (*this->grad) * this_no_grad;
+        Tensor<T> temp = (*this->grad) * (*this);
         (*operand1->grad) += temp;
     }
+    NoGradGuard::is_enabled = false;
 }
 
 template <typename T>
@@ -1302,7 +1276,7 @@ Tensor<T> Tensor<T>::log()
     {
         value = std::log(value);
     }
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::log_backward;
         new_tensor.operand1 = new Tensor<T>(*this);
@@ -1313,20 +1287,18 @@ Tensor<T> Tensor<T>::log()
 template <typename T>
 void Tensor<T>::log_backward()
 {
+    NoGradGuard::is_enabled = true;
     if (this->grad == nullptr)
     {
         std::invalid_argument("Can't call backward if the gradient is nullptr.");
     }
     if (operand1->grad != nullptr)
     {
-        Tensor<T> op1_no_grad = Tensor<T>(*operand1);
-        delete op1_no_grad.grad;
-        op1_no_grad.grad = nullptr;
-
-        Tensor<T> temp = static_cast<T>(1) / op1_no_grad;
+        Tensor<T> temp = static_cast<T>(1) / (*operand1);
         Tensor<T> temp2 = (*this->grad) * temp;
         (*operand1->grad) += temp2;
     }
+    NoGradGuard::is_enabled = false;
 }
 
 template <typename T>
@@ -1346,7 +1318,7 @@ Tensor<T> Tensor<T>::relu(Tensor<T> &t)
     {
         value = std::max(value, static_cast<T>(0));
     }
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::relu_backward;
         new_tensor.operand1 = new Tensor<T>(t);
@@ -1403,7 +1375,7 @@ Tensor<T> Tensor<T>::cross_entropy(Tensor<T> &input, Tensor<int> &target)
         log_probs[{i}] = -log_softmax_output[{i, target[{i}]}];
     }
     Tensor<T> output = log_probs.mean();
-    if (input.grad != nullptr)
+    if (input.grad != nullptr && !NoGradGuard::is_enabled)
     {
         output.grad = new Tensor<T>({0});
         int n = input.shape[0];
@@ -1538,7 +1510,7 @@ Tensor<T> Tensor<T>::mm(Tensor &t1, Tensor &t2, Tensor *out)
             }
         }
     }
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::mm_backward;
         new_tensor.operand1 = new Tensor<T>(t1);
@@ -1550,30 +1522,24 @@ Tensor<T> Tensor<T>::mm(Tensor &t1, Tensor &t2, Tensor *out)
 template <typename T>
 void Tensor<T>::mm_backward()
 {
+    NoGradGuard::is_enabled = true;
     if (this->grad == nullptr)
     {
         std::invalid_argument("Can't call backward if the gradient is nullptr.");
     }
     if (operand1->grad != nullptr)
     {
-        Tensor<T> op2_no_grad = Tensor<T>(*operand2);
-        delete op2_no_grad.grad;
-        op2_no_grad.grad = nullptr;
-
-        Tensor<T> temp = op2_no_grad.transpose(0, 1);
+        Tensor<T> temp = operand2->transpose(0, 1);
         Tensor<T> new_tensor_grad = Tensor<T>::mm(*this->grad, temp);
         (*operand1->grad) += new_tensor_grad;
     }
     if (operand2->grad != nullptr)
     {
-        Tensor<T> op1_no_grad = Tensor<T>(*operand1);
-        delete op1_no_grad.grad;
-        op1_no_grad.grad = nullptr;
-
-        Tensor<T> temp = op1_no_grad.transpose(0, 1);
+        Tensor<T> temp = operand1->transpose(0, 1);
         Tensor<T> new_tensor_grad = Tensor<T>::mm(temp, *this->grad);
         (*operand2->grad) += new_tensor_grad;
     }
+    NoGradGuard::is_enabled = false;
 }
 
 template <typename T>
@@ -1639,13 +1605,7 @@ Tensor<T>& Tensor<T>::operator+=(Tensor<T> &other)
 template <typename T>
 Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
 {
-    Tensor<T> t1_no_grad = Tensor<T>(t1);
-    delete t1_no_grad.grad;
-    t1_no_grad.grad = nullptr;
-
-    Tensor<T> t2_no_grad = Tensor<T>(t2);
-    delete t2_no_grad.grad;
-    t2_no_grad.grad = nullptr;
+    NoGradGuard::is_enabled = true;
 
     std::vector<int> t1_shape(t1.shape.begin(), t1.shape.end());
     std::vector<int> t2_shape(t2.shape.begin(), t2.shape.end());
@@ -1692,15 +1652,15 @@ Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
     
     Tensor<T> new_tensor = Tensor<T>::zeros(new_shape);
     
-    Tensor<T> op1 = t1_no_grad;
-    Tensor<T> op2 = t2_no_grad;
+    Tensor<T> op1 = t1;
+    Tensor<T> op2 = t2;
     if (t1_shape.size() != t1.shape.size())
     {
-        op1 = t1_no_grad.view(t1_shape);
+        op1 = t1.view(t1_shape);
     }
     if (t2_shape.size() != t2.shape.size())
     {
-        op2 = t2_no_grad.view(t2_shape);
+        op2 = t2.view(t2_shape);
     }
 
     if (new_shape.size() == 2)
@@ -1791,7 +1751,8 @@ Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
         new_shape2.erase(new_shape2.begin() + new_shape2.size() - 2);
         new_tensor = new_tensor.view(new_shape2);
     }
-    if (t1.grad != nullptr || t2.grad != nullptr)
+    NoGradGuard::is_enabled = false;
+    if ((t1.grad != nullptr || t2.grad != nullptr) && !NoGradGuard::is_enabled)
     {
         new_tensor.grad = new Tensor<T>(Tensor<T>::zeros(new_tensor.shape));
         std::vector<int> out_shape(new_shape.begin(), new_shape.end());
@@ -1805,18 +1766,15 @@ Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
 template <typename T>
 void Tensor<T>::matmul_backward(std::vector<int> &t1_shape, std::vector<int> &t2_shape, std::vector<int> &new_shape)
 {
+    NoGradGuard::is_enabled = true;
     if (this->grad == nullptr)
     {
         std::invalid_argument("Can't call backward if the gradient is nullptr.");
     }
     int n_dim = new_shape.size();
     if (operand1->grad != nullptr)
-    {
-        Tensor<T> op2_no_grad = Tensor<T>(*operand2);
-        delete op2_no_grad.grad;
-        op2_no_grad.grad = nullptr;
-        
-        Tensor<T> op2 = op2_no_grad.view(t2_shape);
+    {        
+        Tensor<T> op2 = operand2->view(t2_shape);
         Tensor<T> out_grad = this->grad->view(new_shape);
 
         Tensor<T> temp = op2.transpose(n_dim - 2, n_dim - 1);
@@ -1837,11 +1795,7 @@ void Tensor<T>::matmul_backward(std::vector<int> &t1_shape, std::vector<int> &t2
     }
     if (operand2->grad != nullptr)
     {
-        Tensor<T> op1_no_grad = Tensor<T>(*operand1);
-        delete op1_no_grad.grad;
-        op1_no_grad.grad = nullptr;
-
-        Tensor<T> op1 = op1_no_grad.view(t1_shape);
+        Tensor<T> op1 = operand1->view(t1_shape);
         Tensor<T> out_grad = this->grad->view(new_shape);
 
         Tensor<T> temp = op1.transpose(n_dim - 2, n_dim - 1);
@@ -1860,6 +1814,7 @@ void Tensor<T>::matmul_backward(std::vector<int> &t1_shape, std::vector<int> &t2
         Tensor<T> reduced_grad = new_tensor_grad.sum(dim_to_reduce, true).view(op2_shape);
         (*operand2->grad) += reduced_grad;
     }
+    NoGradGuard::is_enabled = false;
 }
 
 template <typename T>
@@ -1915,7 +1870,7 @@ Tensor<T> Tensor<T>::unfold(Tensor &in, int kernel_size, int padding, int stride
             }
         }
     }
-    if (new_tensor.grad != nullptr)
+    if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward =
             std::bind(&Tensor<T>::unfold_backward, std::placeholders::_1, kernel_size, padding, stride);

@@ -183,5 +183,10 @@ class Tensor
     ~Tensor();
 };
 
+class NoGradGuard {
+public:
+  inline static bool is_enabled = false;
+};
+
 // This is to mitigate the template definition errors
 #include "../src/tensor.cpp"
