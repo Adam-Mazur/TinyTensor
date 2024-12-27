@@ -1276,6 +1276,16 @@ TEST_CASE("The max method works correctly")
             REQUIRE((*t1.grad)[{i}] == expected_grad[i]);
         }
     }
+
+    SECTION("Max of a slice of a tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4}) * 5;
+        t1[{0, 0}] = 100;
+        t1[{2, 2}] = 10;
+        Tensor<float> t2 = t1[{{1, 3}, {1, 3}}];
+        Tensor<float> t3 = t2.max();
+        REQUIRE(t3[{0}] == 10);
+    }
 }
 
 TEST_CASE("Autograd works for the sum method with and without dim and keepdim")
@@ -1343,6 +1353,16 @@ TEST_CASE("The argmax method works correctly")
         Tensor<float> t1 = Tensor<float>({-1, 2, -3, 4, -5, 2}).view({2, -1});
         Tensor<int> t2 = t1.argmax();
         REQUIRE(t2[{0}] == 3);
+    }
+
+    SECTION("Argmax of a slice of a tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({5}) * 5;
+        t1[{0}] = 10;
+        t1[{4}] = 8;
+        Tensor<float> t2 = t1[{{1, 5}}];
+        Tensor<int> t3 = t2.argmax();
+        REQUIRE(t3[{0}] == 3);
     }
 }
 
@@ -3036,5 +3056,31 @@ TEST_CASE("The zero_grad method works correctly")
                 REQUIRE((*t1.grad)[{i, j}] == 0.0f);
             }
         }
+    }
+}
+
+TEST_CASE("The equal method works correctly")
+{
+    SECTION("Equality of two identical tensors")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4});
+        Tensor<float> t2 = Tensor<float>::ones({4, 4});
+        REQUIRE(t1.equal(t2));
+    }
+
+    SECTION("Equality of two different tensors")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4});
+        Tensor<float> t2 = Tensor<float>::zeros({4, 4});
+        REQUIRE_FALSE(t1.equal(t2));
+    }
+
+    SECTION("Equality of tensors resulting from indexing operations")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4});
+        t1[{0, 0}] = 0;
+        Tensor<float> t2 = t1[{{1, 3}, {1, 3}}];
+        Tensor<float> t3 = Tensor<float>::ones({2, 2});
+        REQUIRE(t2.equal(t3));
     }
 }

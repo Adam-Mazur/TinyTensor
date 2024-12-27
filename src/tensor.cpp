@@ -1097,9 +1097,9 @@ void Tensor<T>::backward()
 template <typename T>
 Tensor<T> Tensor<T>::max()
 {
-    int argmax = std::distance(data->vec.begin(), std::max_element(data->vec.begin(), data->vec.end()));
+    Tensor<int> argmax = this->argmax();
     Tensor<T> new_tensor = Tensor<T>(*this);
-    new_tensor.offset = argmax;
+    new_tensor.offset = this->offset + argmax[{0}];
     new_tensor.shape = std::vector<size_t>({1});
     new_tensor.strides = std::vector<int>({0});
     if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
@@ -1117,7 +1117,35 @@ Tensor<T> Tensor<T>::max()
 template <typename T>
 Tensor<int> Tensor<T>::argmax() 
 {
-    int argmax = std::distance(data->vec.begin(), std::max_element(data->vec.begin(), data->vec.end()));
+    int argmax = -1;
+    T max_value;
+    std::vector<int> indices(shape.size(), 0);
+    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    for (int i = 0; i < num_of_elements; i++)
+    {
+        T value = (*this)[indices];
+        if (argmax == -1 || value > max_value)
+        {
+            max_value = value;
+            argmax = 0;
+            for (int j = 0; j < indices.size(); j++)
+            {
+                argmax += indices[j] * strides[j];
+            }
+        }
+        for (int j = indices.size() - 1; j >= 0; j--)
+        {
+            indices[j]++;
+            if (indices[j] == shape[j])
+            {
+                indices[j] = 0;
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
     Tensor<int> new_tensor = Tensor<int>({argmax});
     return new_tensor;
 }
@@ -1955,6 +1983,37 @@ void Tensor<T>::zero_grad()
     {
         grad->data->vec.assign(grad->data->size(), static_cast<T>(0));
     }
+}
+
+template <typename T>
+bool Tensor<T>::equal(Tensor<T> &other)
+{
+    if (shape != other.shape)
+    {
+        return false;
+    }
+    std::vector<int> indices(shape.size(), 0);
+    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    for (int i = 0; i < num_of_elements; i++)
+    {
+        if ((*this)[indices] != other[indices])
+        {
+            return false;
+        }
+        for (int j = indices.size() - 1; j >= 0; j--)
+        {
+            indices[j]++;
+            if (indices[j] == shape[j])
+            {
+                indices[j] = 0;
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    return true;
 }
 
 template <typename T>
