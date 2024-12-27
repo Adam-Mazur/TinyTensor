@@ -1797,7 +1797,7 @@ Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
         new_shape2.erase(new_shape2.begin() + new_shape2.size() - 2);
         new_tensor = new_tensor.view(new_shape2);
     }
-    if (t1.grad != nullptr || t1.grad != nullptr)
+    if (t1.grad != nullptr || t2.grad != nullptr)
     {
         new_tensor.grad = new Tensor<T>(Tensor<T>::zeros(new_tensor.shape));
         std::vector<int> out_shape(new_shape.begin(), new_shape.end());
