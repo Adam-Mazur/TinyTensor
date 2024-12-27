@@ -186,6 +186,13 @@ class Tensor
 class NoGradGuard {
 public:
   inline static bool is_enabled = false;
+  bool prev_state;
+  NoGradGuard() : prev_state(is_enabled) {
+    is_enabled = true;
+  }
+  ~NoGradGuard() {
+    is_enabled = prev_state;
+  }
 };
 
 // This is to mitigate the template definition errors
