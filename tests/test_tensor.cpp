@@ -2958,4 +2958,64 @@ TEST_CASE("Autograd works even if you reassing the result to the same variable")
             REQUIRE_THAT(((*bias.grad)[{i}]), Catch::Matchers::WithinAbs(6272.0f, 0.01f));
         }
     }
+
+    SECTION("Integration test 2")
+    {
+        Tensor<float> x = Tensor<float>::ones({32, 1, 28, 28});
+        Tensor<float> weights = Tensor<float>::ones({8, 1, 5, 5}, true);
+        Tensor<float> bias = Tensor<float>::ones({8}, true);
+
+        x = Tensor<float>::unfold(x, 5, 2, 2);
+        Tensor<float> weights_view = weights.view({8, -1});
+        x = Tensor<float>::matmul(weights_view, x); // flatten the weights
+
+        x = x.view({32, 8, 14, -1});
+
+        {
+            Tensor<float> bias_view = bias.view({1, 8, 1, 1});
+            x = x + bias_view;
+        }
+
+        Tensor<float> weights2 = Tensor<float>::ones({16, 8, 3, 3}, true);
+        Tensor<float> bias2 = Tensor<float>::ones({16}, true);
+
+        x = Tensor<float>::unfold(x, 3, 1, 2);
+        Tensor<float> weights_view2 = weights2.view({16, -1});
+        x = Tensor<float>::matmul(weights_view2, x); // flatten the weights
+
+        x = x.view({32, 16, 7, -1});
+
+        {
+            Tensor<float> bias_view2 = bias2.view({1, 16, 1, 1});
+            x = x + bias_view2;
+        }
+
+        Tensor<float> result = x.sum();
+        result.backward();
+        for (int i = 0; i < 8; i++)
+        {
+            for (int k = 0; k < 5; k++)
+            {
+                for (int l = 0; l < 5; l++)
+                {
+                    if ((k < 2 || k > 3) && (l < 2 || l > 3))
+                    {
+                        REQUIRE_THAT(((*weights.grad)[{i, 0, k, l}]), Catch::Matchers::WithinAbs(184832.0f, 0.01f));
+                    }
+                    else if ((k == 2 || k == 3) && (l == 2 || l == 3))
+                    {
+                        REQUIRE_THAT(((*weights.grad)[{i, 0, k, l}]), Catch::Matchers::WithinAbs(204800.0f, 0.01f));
+                    } else 
+                    {
+                        REQUIRE_THAT(((*weights.grad)[{i, 0, k, l}]), Catch::Matchers::WithinAbs(194560.0f, 0.01f));
+                    }
+                }
+            }
+        
+        }
+        for (int i = 0; i < 8; i++)
+        {
+            REQUIRE_THAT(((*bias.grad)[{i}]), Catch::Matchers::WithinAbs(204800.0f, 0.01f));
+        }
+    }
 }
