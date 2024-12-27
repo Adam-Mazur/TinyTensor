@@ -2871,4 +2871,91 @@ TEST_CASE("Autograd works even if you reassing the result to the same variable")
             }
         }
     }
+
+    SECTION("Unfold")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({1, 1, 4, 4}, true);
+        Tensor<float> t1_copy = t1;
+        t1 = Tensor<float>::unfold(t1, 2, 1, 1);
+        Tensor<float> t2 = t1.sum();
+        t2.backward();
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                REQUIRE_THAT(((*t1_copy.grad)[{0, 0, i, j}]), Catch::Matchers::WithinAbs(4.0f, 0.01f));
+            }
+        }
+    }
+
+    SECTION("View")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4}, true);
+        Tensor<float> t1_copy = t1;
+        t1 = t1.view({2, 8});
+        Tensor<float> t2 = t1.sum();
+        t2.backward();
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                REQUIRE_THAT(((*t1_copy.grad)[{i, j}]), Catch::Matchers::WithinAbs(1.0f, 0.01f));
+            }
+        }
+    }
+
+    SECTION("Integration test")
+    {
+        Tensor<float> x = Tensor<float>::ones({32, 1, 28, 28});
+        Tensor<float> weights = Tensor<float>::ones({8, 1, 5, 5}, true);
+        Tensor<float> bias = Tensor<float>::ones({8}, true);
+        int kernel_size = 5;
+        int padding = 2;
+        int stride = 2;
+        int out_channels = 8;
+        int batch_size = 32;
+        int height = 28;
+        bool use_bias = true;
+
+        x = Tensor<float>::unfold(x, kernel_size, padding, stride);
+        Tensor<float> weights_view = weights.view({out_channels, -1});
+        x = Tensor<float>::matmul(weights_view, x); // flatten the weights
+
+        int output_height = (int)((height + 2 * padding - kernel_size) / stride) + 1;
+        x = x.view({batch_size, out_channels, output_height, -1});
+
+        if (use_bias)
+        {
+            Tensor<float> bias_view = bias.view({1, out_channels, 1, 1});
+            x = x + bias_view;
+        }
+
+        Tensor<float> result = x.sum();
+        result.backward();
+        for (int i = 0; i < 8; i++)
+        {
+            for (int k = 0; k < 5; k++)
+            {
+                for (int l = 0; l < 5; l++)
+                {
+                    if ((k < 2 || k > 3) && (l < 2 || l > 3))
+                    {
+                        REQUIRE_THAT(((*weights.grad)[{i, 0, k, l}]), Catch::Matchers::WithinAbs(5408.0f, 0.01f));
+                    }
+                    else if ((k == 2 || k == 3) && (l == 2 || l == 3))
+                    {
+                        REQUIRE_THAT(((*weights.grad)[{i, 0, k, l}]), Catch::Matchers::WithinAbs(6272.0f, 0.01f));
+                    } else 
+                    {
+                        REQUIRE_THAT(((*weights.grad)[{i, 0, k, l}]), Catch::Matchers::WithinAbs(5824.0f, 0.01f));
+                    }
+                }
+            }
+        
+        }
+        for (int i = 0; i < 8; i++)
+        {
+            REQUIRE_THAT(((*bias.grad)[{i}]), Catch::Matchers::WithinAbs(6272.0f, 0.01f));
+        }
+    }
 }
