@@ -1579,12 +1579,6 @@ void Tensor<T>::mm_backward()
 template <typename T>
 Tensor<T>& Tensor<T>::operator+=(Tensor<T> &other)
 {
-    // No backward support yet
-    if (this->grad != nullptr)
-    {
-        throw std::invalid_argument("In-place operations are not supported for tensors with gradients.");
-    }
-    
     std::vector<size_t> other_shape(other.shape.begin(), other.shape.end());
     std::vector<int> other_strides(other.strides.begin(), other.strides.end());
     if (other_shape.size() < this->shape.size())
