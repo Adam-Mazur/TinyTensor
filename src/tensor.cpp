@@ -1891,7 +1891,7 @@ Tensor<T> Tensor<T>::unfold(Tensor &in, int kernel_size, int padding, int stride
 
     int in_off = in.offset;
     int in_st0 = in.strides[0];
-    int in_st1 = in.strides[0];
+    int in_st1 = in.strides[1];
     int in_st2 = in.strides[2];
     int in_st3 = in.strides[3];
 
@@ -1957,7 +1957,7 @@ void Tensor<T>::unfold_backward(int kernel_size, int padding, int stride)
 
         int op1_off = operand1->offset;
         int op1_st0 = operand1->strides[0];
-        int op1_st1 = operand1->strides[0];
+        int op1_st1 = operand1->strides[1];
         int op1_st2 = operand1->strides[2];
         int op1_st3 = operand1->strides[3];
 
