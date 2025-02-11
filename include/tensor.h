@@ -45,6 +45,8 @@ template <typename T> class Tensor
     
     size_t get_hash();
 
+    bool backward_enabled() const;
+
     void add_backward();
 
     void sub_backward();
