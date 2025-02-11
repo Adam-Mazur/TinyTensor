@@ -129,7 +129,7 @@ TEST_CASE("The indexing operator works for ranges")
     SECTION("The indexing operator calculates the shape correctly")
     {
         Tensor<float> t2 = t1[{{0, 2}, {0, 1}, {3, 5}, {2, 4}, {0, 7}}];
-        REQUIRE(t2.size() == std::vector<size_t>({2, 1, 2, 2, 7}));
+        REQUIRE(t2.size() == std::vector<int>({2, 1, 2, 2, 7}));
     }
     SECTION("The indexing operator chooses the right range")
     {
@@ -147,7 +147,7 @@ TEST_CASE("The indexing operator works for ranges")
         t1[{0, 0, 3, 2, 1}] = 3;
         t1[{0, 0, 4, 2, 0}] = 4;
         Tensor<float> t2 = t1[{{0, -1}, {-4, 1}, {-2, 5}, {2, 4}, {0, 7}}];
-        REQUIRE(t2.size() == std::vector<size_t>({2, 1, 2, 2, 7}));
+        REQUIRE(t2.size() == std::vector<int>({2, 1, 2, 2, 7}));
         REQUIRE(t2[{0, 0, 0, 0, 0}] == 2);
         REQUIRE(t2[{0, 0, 0, 0, 1}] == 3);
         REQUIRE(t2[{0, 0, 1, 0, 0}] == 4);
@@ -155,7 +155,7 @@ TEST_CASE("The indexing operator works for ranges")
     SECTION("The indexing operator works for ranges larger than its shape")
     {
         Tensor<float> t2 = t1[{{-100, 2}, {-50, 1}, {3, 5}, {2, 4}, {0, 200}}];
-        REQUIRE(t2.size() == std::vector<size_t>({2, 1, 2, 2, 7}));
+        REQUIRE(t2.size() == std::vector<int>({2, 1, 2, 2, 7}));
     }
     SECTION("Can use the indexing operator recursively")
     {
@@ -168,7 +168,7 @@ TEST_CASE("The indexing operator works for ranges")
         REQUIRE(t3[{0, 0, 0, 0, 1}] == 3);
         REQUIRE(t3[{0, 0, 1, 0, 0}] == 4);
         REQUIRE(t3[{0, 0, 0, 0, 2}] == 1);
-        REQUIRE(t3.size() == std::vector<size_t>({2, 1, 2, 2, 3}));
+        REQUIRE(t3.size() == std::vector<int>({2, 1, 2, 2, 3}));
     }
     SECTION("Indexing operator can handle indices vector of different length than it's shape")
     {
@@ -176,12 +176,12 @@ TEST_CASE("The indexing operator works for ranges")
         t1[{0, 0, 3, 2, 1}] = 3;
         t1[{0, 0, 4, 2, 0}] = 4;
         Tensor<float> t2 = t1[{{0, 0}, {0, 2}}];
-        REQUIRE(t2.size() == std::vector<size_t>({2, 5, 6, 7}));
+        REQUIRE(t2.size() == std::vector<int>({2, 5, 6, 7}));
         REQUIRE(t2[{0, 3, 2, 0}] == 2);
         REQUIRE(t2[{0, 3, 2, 1}] == 3);
         REQUIRE(t2[{0, 4, 2, 0}] == 4);
         Tensor<float> t3 = t1[{{0, 1}, {0, 0}}];
-        REQUIRE(t3.size() == std::vector<size_t>({1, 5, 6, 7}));
+        REQUIRE(t3.size() == std::vector<int>({1, 5, 6, 7}));
         REQUIRE(t3[{0, 3, 2, 0}] == 2);
         REQUIRE(t3[{0, 3, 2, 1}] == 3);
         REQUIRE(t3[{0, 4, 2, 0}] == 4);
@@ -192,13 +192,13 @@ TEST_CASE("The indexing operator works for ranges")
 TEST_CASE("The size method works correctly")
 {
     Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
-    REQUIRE(t1.size() == std::vector<size_t>({3, 4, 5}));
+    REQUIRE(t1.size() == std::vector<int>({3, 4, 5}));
     Tensor<float> t2 = Tensor<float>::zeros({5});
-    REQUIRE(t2.size() == std::vector<size_t>({5}));
+    REQUIRE(t2.size() == std::vector<int>({5}));
     Tensor<float> t3 = Tensor<float>::randn({5, 5, 6, 7});
-    REQUIRE(t3.size() == std::vector<size_t>({5, 5, 6, 7}));
+    REQUIRE(t3.size() == std::vector<int>({5, 5, 6, 7}));
     Tensor<float> t4 = Tensor<float>({0, 1, 2, 3, 4});
-    REQUIRE(t4.size() == std::vector<size_t>({5}));
+    REQUIRE(t4.size() == std::vector<int>({5}));
 }
 
 TEST_CASE("The view method works correctly")
@@ -218,9 +218,9 @@ TEST_CASE("The view method works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.view({-1, 5});
-        REQUIRE(t2.size() == std::vector<size_t>({12, 5}));
+        REQUIRE(t2.size() == std::vector<int>({12, 5}));
         Tensor<float> t3 = t1.view({3, -1});
-        REQUIRE(t3.size() == std::vector<size_t>({3, 20}));
+        REQUIRE(t3.size() == std::vector<int>({3, 20}));
     }
 
     SECTION("The view method works on references")
@@ -228,7 +228,7 @@ TEST_CASE("The view method works correctly")
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1[{{0, 3}, {0, 4}, {0, 5}}];
         Tensor<float> t3 = t2.view({-1, 5});
-        REQUIRE(t3.size() == std::vector<size_t>({12, 5}));
+        REQUIRE(t3.size() == std::vector<int>({12, 5}));
         t2[{0, 0, 0}] = 2;
         REQUIRE(t3[{0, 0}] == 2);
     }
@@ -237,9 +237,9 @@ TEST_CASE("The view method works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.view({6, 2, 5});
-        REQUIRE(t2.size() == std::vector<size_t>({6, 2, 5}));
+        REQUIRE(t2.size() == std::vector<int>({6, 2, 5}));
         Tensor<float> t3 = t1.view({3, 20});
-        REQUIRE(t3.size() == std::vector<size_t>({3, 20}));
+        REQUIRE(t3.size() == std::vector<int>({3, 20}));
     }
 }
 
@@ -287,9 +287,9 @@ TEST_CASE("The transpose method works correctly")
     SECTION("The transpose method swaps the dimensions correctly")
     {
         Tensor<float> t2 = t1.transpose(0, 1);
-        REQUIRE(t2.size() == std::vector<size_t>({4, 3, 5}));
+        REQUIRE(t2.size() == std::vector<int>({4, 3, 5}));
         Tensor<float> t3 = t1.transpose(1, 2);
-        REQUIRE(t3.size() == std::vector<size_t>({3, 5, 4}));
+        REQUIRE(t3.size() == std::vector<int>({3, 5, 4}));
     }
     SECTION("The transpose method throws exceptions for invalid dimensions")
     {
@@ -301,9 +301,9 @@ TEST_CASE("The transpose method works correctly")
     {
         Tensor<float> t2 = Tensor<float>::ones({2, 3, 4, 5});
         Tensor<float> t3 = t2.transpose(1, 3);
-        REQUIRE(t3.size() == std::vector<size_t>({2, 5, 4, 3}));
+        REQUIRE(t3.size() == std::vector<int>({2, 5, 4, 3}));
         Tensor<float> t4 = t2.transpose(0, 2);
-        REQUIRE(t4.size() == std::vector<size_t>({4, 3, 2, 5}));
+        REQUIRE(t4.size() == std::vector<int>({4, 3, 2, 5}));
     }
     SECTION("The transpose method correctly transposes the tensor elements")
     {
@@ -522,7 +522,7 @@ TEST_CASE("Arithmetic operations work correctly")
         Tensor<float> t1 = Tensor<float>::ones({2, 3, 4});
         Tensor<float> t2 = Tensor<float>::ones({4});
         Tensor<float> t3 = t1 + t2;
-        REQUIRE(t3.size() == std::vector<size_t>({2, 3, 4}));
+        REQUIRE(t3.size() == std::vector<int>({2, 3, 4}));
         for (int i = 0; i < 2; i++)
         {
             for (int j = 0; j < 3; j++)
@@ -537,7 +537,7 @@ TEST_CASE("Arithmetic operations work correctly")
         Tensor<float> t4 = Tensor<float>::ones({1, 3, 1});
         Tensor<float> t5 = Tensor<float>::ones({2, 1, 4});
         Tensor<float> t6 = t4 + t5;
-        REQUIRE(t6.size() == std::vector<size_t>({2, 3, 4}));
+        REQUIRE(t6.size() == std::vector<int>({2, 3, 4}));
         for (int i = 0; i < 2; i++)
         {
             for (int j = 0; j < 3; j++)
@@ -552,7 +552,7 @@ TEST_CASE("Arithmetic operations work correctly")
         Tensor<float> t7 = Tensor<float>::ones({2, 1, 4});
         Tensor<float> t8 = Tensor<float>::ones({3, 4});
         Tensor<float> t9 = t7 + t8;
-        REQUIRE(t9.size() == std::vector<size_t>({2, 3, 4}));
+        REQUIRE(t9.size() == std::vector<int>({2, 3, 4}));
         for (int i = 0; i < 2; i++)
         {
             for (int j = 0; j < 3; j++)
@@ -570,7 +570,7 @@ TEST_CASE("Arithmetic operations work correctly")
         Tensor<float> t1 = Tensor<float>::ones({2, 3, 4, 5});
         Tensor<float> t2 = Tensor<float>::ones({5});
         Tensor<float> t3 = t1 + t2;
-        REQUIRE(t3.size() == std::vector<size_t>({2, 3, 4, 5}));
+        REQUIRE(t3.size() == std::vector<int>({2, 3, 4, 5}));
         for (int i = 0; i < 2; i++)
         {
             for (int j = 0; j < 3; j++)
@@ -588,7 +588,7 @@ TEST_CASE("Arithmetic operations work correctly")
         Tensor<float> t4 = Tensor<float>::ones({1, 3, 1, 5});
         Tensor<float> t5 = Tensor<float>::ones({2, 1, 4, 1});
         Tensor<float> t6 = t4 + t5;
-        REQUIRE(t6.size() == std::vector<size_t>({2, 3, 4, 5}));
+        REQUIRE(t6.size() == std::vector<int>({2, 3, 4, 5}));
         for (int i = 0; i < 2; i++)
         {
             for (int j = 0; j < 3; j++)
@@ -606,7 +606,7 @@ TEST_CASE("Arithmetic operations work correctly")
         Tensor<float> t7 = Tensor<float>::ones({2, 1, 4, 1});
         Tensor<float> t8 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t9 = t7 + t8;
-        REQUIRE(t9.size() == std::vector<size_t>({2, 3, 4, 5}));
+        REQUIRE(t9.size() == std::vector<int>({2, 3, 4, 5}));
         for (int i = 0; i < 2; i++)
         {
             for (int j = 0; j < 3; j++)
@@ -668,7 +668,7 @@ TEST_CASE("Arithmetic operations work correctly")
         Tensor<float> t3 = t1[{{0, 2}, {0, 2}, {2, 4}}];
         Tensor<float> t4 = t2[{{0, 2}, {1, 3}, {0, 2}}];
         Tensor<float> t5 = t3 + t4;
-        REQUIRE(t5.size() == std::vector<size_t>({2, 2, 2}));
+        REQUIRE(t5.size() == std::vector<int>({2, 2, 2}));
         for (int i = 0; i < 2; i++)
         {
             for (int j = 0; j < 2; j++)
@@ -688,7 +688,7 @@ TEST_CASE("Arithmetic operations work correctly")
         Tensor<float> t3 = t1[{{0, 2}, {0, 2}, {0, 2}}];
         Tensor<float> t4 = Tensor<float>::ones({2});
         Tensor<float> t5 = t3 + t4;
-        REQUIRE(t5.size() == std::vector<size_t>({2, 2, 2}));
+        REQUIRE(t5.size() == std::vector<int>({2, 2, 2}));
         for (int i = 0; i < 2; i++)
         {
             for (int j = 0; j < 2; j++)
@@ -840,7 +840,7 @@ TEST_CASE("The sum method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.sum({0}, false);
-        REQUIRE(t2.size() == std::vector<size_t>({4, 5}));
+        REQUIRE(t2.size() == std::vector<int>({4, 5}));
         for (int i = 0; i < 4; i++)
         {
             for (int j = 0; j < 5; j++)
@@ -854,7 +854,7 @@ TEST_CASE("The sum method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.sum({2}, false);
-        REQUIRE(t2.size() == std::vector<size_t>({3, 4}));
+        REQUIRE(t2.size() == std::vector<int>({3, 4}));
         for (int i = 0; i < 3; i++)
         {
             for (int j = 0; j < 4; j++)
@@ -868,7 +868,7 @@ TEST_CASE("The sum method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.sum({0}, true);
-        REQUIRE(t2.size() == std::vector<size_t>({1, 4, 5}));
+        REQUIRE(t2.size() == std::vector<int>({1, 4, 5}));
         for (int i = 0; i < 4; i++)
         {
             for (int j = 0; j < 5; j++)
@@ -882,7 +882,7 @@ TEST_CASE("The sum method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.sum({2}, true);
-        REQUIRE(t2.size() == std::vector<size_t>({3, 4, 1}));
+        REQUIRE(t2.size() == std::vector<int>({3, 4, 1}));
         for (int i = 0; i < 3; i++)
         {
             for (int j = 0; j < 4; j++)
@@ -896,7 +896,7 @@ TEST_CASE("The sum method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5, -6}).view({2, 2, 3});
         Tensor<float> t2 = t1.sum({0}, false);
-        REQUIRE(t2.size() == std::vector<size_t>({2, 3}));
+        REQUIRE(t2.size() == std::vector<int>({2, 3}));
         REQUIRE(t2[{0, 0}] == 0);
         REQUIRE(t2[{0, 1}] == 0);
         REQUIRE(t2[{0, 2}] == 0);
@@ -908,7 +908,7 @@ TEST_CASE("The sum method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.sum({0, 2}, false);
-        REQUIRE(t2.size() == std::vector<size_t>({4}));
+        REQUIRE(t2.size() == std::vector<int>({4}));
         for (int i = 0; i < 4; i++)
         {
             REQUIRE(t2[{i}] == 15);
@@ -919,7 +919,7 @@ TEST_CASE("The sum method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.sum({0, 2}, true);
-        REQUIRE(t2.size() == std::vector<size_t>({1, 4, 1}));
+        REQUIRE(t2.size() == std::vector<int>({1, 4, 1}));
         for (int i = 0; i < 4; i++)
         {
             REQUIRE(t2[{0, i, 0}] == 15);
@@ -1389,7 +1389,7 @@ TEST_CASE("The mean method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.mean({0}, false);
-        REQUIRE(t2.size() == std::vector<size_t>({4, 5}));
+        REQUIRE(t2.size() == std::vector<int>({4, 5}));
         for (int i = 0; i < 4; i++)
         {
             for (int j = 0; j < 5; j++)
@@ -1403,7 +1403,7 @@ TEST_CASE("The mean method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.mean({2}, false);
-        REQUIRE(t2.size() == std::vector<size_t>({3, 4}));
+        REQUIRE(t2.size() == std::vector<int>({3, 4}));
         for (int i = 0; i < 3; i++)
         {
             for (int j = 0; j < 4; j++)
@@ -1417,7 +1417,7 @@ TEST_CASE("The mean method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.mean({0}, true);
-        REQUIRE(t2.size() == std::vector<size_t>({1, 4, 5}));
+        REQUIRE(t2.size() == std::vector<int>({1, 4, 5}));
         for (int i = 0; i < 4; i++)
         {
             for (int j = 0; j < 5; j++)
@@ -1431,7 +1431,7 @@ TEST_CASE("The mean method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.mean({2}, true);
-        REQUIRE(t2.size() == std::vector<size_t>({3, 4, 1}));
+        REQUIRE(t2.size() == std::vector<int>({3, 4, 1}));
         for (int i = 0; i < 3; i++)
         {
             for (int j = 0; j < 4; j++)
@@ -1445,7 +1445,7 @@ TEST_CASE("The mean method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5, -6}).view({2, 2, 3});
         Tensor<float> t2 = t1.mean({0}, false);
-        REQUIRE(t2.size() == std::vector<size_t>({2, 3}));
+        REQUIRE(t2.size() == std::vector<int>({2, 3}));
         REQUIRE(t2[{0, 0}] == 0);
         REQUIRE(t2[{0, 1}] == 0);
         REQUIRE(t2[{0, 2}] == 0);
@@ -1458,7 +1458,7 @@ TEST_CASE("The mean method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5, -6}).view({2, 2, 3});
         Tensor<float> t2 = t1.mean({0}, true);
-        REQUIRE(t2.size() == std::vector<size_t>({1, 2, 3}));
+        REQUIRE(t2.size() == std::vector<int>({1, 2, 3}));
         REQUIRE(t2[{0, 0, 0}] == 0);
         REQUIRE(t2[{0, 0, 1}] == 0);
         REQUIRE(t2[{0, 0, 2}] == 0);
@@ -1552,7 +1552,7 @@ TEST_CASE("The var method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.var({0}, false);
-        REQUIRE(t2.size() == std::vector<size_t>({4, 5}));
+        REQUIRE(t2.size() == std::vector<int>({4, 5}));
         for (int i = 0; i < 4; i++)
         {
             for (int j = 0; j < 5; j++)
@@ -1566,7 +1566,7 @@ TEST_CASE("The var method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.var({2}, false);
-        REQUIRE(t2.size() == std::vector<size_t>({3, 4}));
+        REQUIRE(t2.size() == std::vector<int>({3, 4}));
         for (int i = 0; i < 3; i++)
         {
             for (int j = 0; j < 4; j++)
@@ -1580,7 +1580,7 @@ TEST_CASE("The var method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.var({0}, true);
-        REQUIRE(t2.size() == std::vector<size_t>({1, 4, 5}));
+        REQUIRE(t2.size() == std::vector<int>({1, 4, 5}));
         for (int i = 0; i < 4; i++)
         {
             for (int j = 0; j < 5; j++)
@@ -1594,7 +1594,7 @@ TEST_CASE("The var method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
         Tensor<float> t2 = t1.var({2}, true);
-        REQUIRE(t2.size() == std::vector<size_t>({3, 4, 1}));
+        REQUIRE(t2.size() == std::vector<int>({3, 4, 1}));
         for (int i = 0; i < 3; i++)
         {
             for (int j = 0; j < 4; j++)
@@ -1608,7 +1608,7 @@ TEST_CASE("The var method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5, -6}).view({2, 2, 3});
         Tensor<float> t2 = t1.var({0}, false);
-        REQUIRE(t2.size() == std::vector<size_t>({2, 3}));
+        REQUIRE(t2.size() == std::vector<int>({2, 3}));
         REQUIRE_THAT((t2[{0, 0}]), Catch::Matchers::WithinRel(2.0f, 0.01f));
         REQUIRE_THAT((t2[{0, 1}]), Catch::Matchers::WithinRel(8.0f, 0.01f));
         REQUIRE_THAT((t2[{0, 2}]), Catch::Matchers::WithinRel(18.0f, 0.01f));
@@ -1621,7 +1621,7 @@ TEST_CASE("The var method with dimension and keep_dim works correctly")
     {
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5, -6}).view({2, 2, 3});
         Tensor<float> t2 = t1.var({0}, true);
-        REQUIRE(t2.size() == std::vector<size_t>({1, 2, 3}));
+        REQUIRE(t2.size() == std::vector<int>({1, 2, 3}));
         REQUIRE_THAT((t2[{0, 0, 0}]), Catch::Matchers::WithinRel(2.0f, 0.01f));
         REQUIRE_THAT((t2[{0, 0, 1}]), Catch::Matchers::WithinRel(8.0f, 0.01f));
         REQUIRE_THAT((t2[{0, 0, 2}]), Catch::Matchers::WithinRel(18.0f, 0.01f));
@@ -2022,7 +2022,7 @@ TEST_CASE("The stack method works correctly")
         Tensor<float> t2 = Tensor<float>::ones({2, 3}) * 2;
         Tensor<float> t3 = Tensor<float>::ones({2, 3}) * 3;
         Tensor<float> result = Tensor<float>::stack({t1, t2, t3}, 0);
-        REQUIRE(result.size() == std::vector<size_t>({3, 2, 3}));
+        REQUIRE(result.size() == std::vector<int>({3, 2, 3}));
         for (int i = 0; i < 3; i++)
         {
             for (int j = 0; j < 2; j++)
@@ -2041,7 +2041,7 @@ TEST_CASE("The stack method works correctly")
         Tensor<float> t2 = Tensor<float>::ones({2, 3}) * 2;
         Tensor<float> t3 = Tensor<float>::ones({2, 3}) * 3;
         Tensor<float> result = Tensor<float>::stack({t1, t2, t3}, 1);
-        REQUIRE(result.size() == std::vector<size_t>({2, 3, 3}));
+        REQUIRE(result.size() == std::vector<int>({2, 3, 3}));
         for (int i = 0; i < 2; i++)
         {
             for (int j = 0; j < 3; j++)
@@ -2060,7 +2060,7 @@ TEST_CASE("The stack method works correctly")
         Tensor<float> t2 = Tensor<float>::ones({2, 3}) * 2;
         Tensor<float> t3 = Tensor<float>::ones({2, 3}) * 3;
         Tensor<float> result = Tensor<float>::stack({t1, t2, t3}, 2);
-        REQUIRE(result.size() == std::vector<size_t>({2, 3, 3}));
+        REQUIRE(result.size() == std::vector<int>({2, 3, 3}));
         for (int i = 0; i < 2; i++)
         {
             for (int j = 0; j < 3; j++)
@@ -2088,7 +2088,7 @@ TEST_CASE("The mm method works correctly")
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6}).view({2, 3});
         Tensor<float> t2 = Tensor<float>({7, 8, 9, 10, 11, 12}).view({3, 2});
         Tensor<float> result = Tensor<float>::mm(t1, t2);
-        REQUIRE(result.size() == std::vector<size_t>({2, 2}));
+        REQUIRE(result.size() == std::vector<int>({2, 2}));
         REQUIRE(result[{0, 0}] == 58);
         REQUIRE(result[{0, 1}] == 64);
         REQUIRE(result[{1, 0}] == 139);
@@ -2100,7 +2100,7 @@ TEST_CASE("The mm method works correctly")
         Tensor<float> t1 = Tensor<float>({1, 2, 3}).view({1, 3});
         Tensor<float> t2 = Tensor<float>({4, 5, 6, 7, 8, 9}).view({3, 2});
         Tensor<float> result = Tensor<float>::mm(t1, t2);
-        REQUIRE(result.size() == std::vector<size_t>({1, 2}));
+        REQUIRE(result.size() == std::vector<int>({1, 2}));
         REQUIRE(result[{0, 0}] == 40);
         REQUIRE(result[{0, 1}] == 46);
     }
@@ -2110,7 +2110,7 @@ TEST_CASE("The mm method works correctly")
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6}).view({2, 3});
         Tensor<float> t2 = Tensor<float>({7, 8, 9}).view({3, 1});
         Tensor<float> result = Tensor<float>::mm(t1, t2);
-        REQUIRE(result.size() == std::vector<size_t>({2, 1}));
+        REQUIRE(result.size() == std::vector<int>({2, 1}));
         REQUIRE(result[{0, 0}] == 50);
         REQUIRE(result[{1, 0}] == 122);
     }
@@ -2149,7 +2149,7 @@ TEST_CASE("The mm method works correctly")
         Tensor<float> t2 = Tensor<float>({9, 8, 7, 6, 5, 4, 3, 2, 1}).view({3, 3});
         Tensor<float> *out = new Tensor<float>(Tensor<float>::zeros({3, 3}));
         Tensor<float>::mm(t1, t2, out);
-        REQUIRE(out->size() == std::vector<size_t>({3, 3}));
+        REQUIRE(out->size() == std::vector<int>({3, 3}));
         REQUIRE((*out)[{0, 0}] == 30);
         REQUIRE((*out)[{0, 1}] == 24);
         REQUIRE((*out)[{0, 2}] == 18);
@@ -2350,7 +2350,7 @@ TEST_CASE("The matmul method works correctly")
         Tensor<float> t1 = Tensor<float>({1, 2, 3});
         Tensor<float> t2 = Tensor<float>({4, 5, 6, 7, 8, 9}).view({3, 2});
         Tensor<float> result = Tensor<float>::matmul(t1, t2);
-        REQUIRE(result.size() == std::vector<size_t>({2}));
+        REQUIRE(result.size() == std::vector<int>({2}));
         REQUIRE(result[{0}] == 40);
         REQUIRE(result[{1}] == 46);
     }
@@ -2360,7 +2360,7 @@ TEST_CASE("The matmul method works correctly")
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6}).view({2, 3});
         Tensor<float> t2 = Tensor<float>({7, 8, 9});
         Tensor<float> result = Tensor<float>::matmul(t1, t2);
-        REQUIRE(result.size() == std::vector<size_t>({2}));
+        REQUIRE(result.size() == std::vector<int>({2}));
         REQUIRE(result[{0}] == 50);
         REQUIRE(result[{1}] == 122);
     }
@@ -2370,7 +2370,7 @@ TEST_CASE("The matmul method works correctly")
         Tensor<float> t1 = Tensor<float>({1, 2, 3});
         Tensor<float> t2 = Tensor<float>({4, 5, 6});
         Tensor<float> result = Tensor<float>::matmul(t1, t2);
-        REQUIRE(result.size() == std::vector<size_t>({1}));
+        REQUIRE(result.size() == std::vector<int>({1}));
         REQUIRE(result[{0}] == 32);
     }
 
@@ -2379,7 +2379,7 @@ TEST_CASE("The matmul method works correctly")
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6}).view({2, 3});
         Tensor<float> t2 = Tensor<float>({7, 8, 9, 10, 11, 12}).view({3, 2});
         Tensor<float> result = Tensor<float>::matmul(t1, t2);
-        REQUIRE(result.size() == std::vector<size_t>({2, 2}));
+        REQUIRE(result.size() == std::vector<int>({2, 2}));
         REQUIRE(result[{0, 0}] == 58);
         REQUIRE(result[{0, 1}] == 64);
         REQUIRE(result[{1, 0}] == 139);
@@ -2391,7 +2391,7 @@ TEST_CASE("The matmul method works correctly")
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({2, 2, 3});
         Tensor<float> t2 = Tensor<float>({13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24}).view({2, 3, 2});
         Tensor<float> result = Tensor<float>::matmul(t1, t2);
-        REQUIRE(result.size() == std::vector<size_t>({2, 2, 2}));
+        REQUIRE(result.size() == std::vector<int>({2, 2, 2}));
         REQUIRE(result[{0, 0, 0}] == 94);
         REQUIRE(result[{0, 0, 1}] == 100);
         REQUIRE(result[{0, 1, 0}] == 229);
@@ -2407,7 +2407,7 @@ TEST_CASE("The matmul method works correctly")
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({2, 2, 3});
         Tensor<float> t2 = Tensor<float>({13, 14, 15});
         Tensor<float> result = Tensor<float>::matmul(t1, t2);
-        REQUIRE(result.size() == std::vector<size_t>({2, 2}));
+        REQUIRE(result.size() == std::vector<int>({2, 2}));
         REQUIRE(result[{0, 0}] == 86);
         REQUIRE(result[{0, 1}] == 212);
         REQUIRE(result[{1, 0}] == 338);
@@ -2419,7 +2419,7 @@ TEST_CASE("The matmul method works correctly")
         Tensor<float> t1 = Tensor<float>({13, 14, 15});
         Tensor<float> t2 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({2, 3, 2});
         Tensor<float> result = Tensor<float>::matmul(t1, t2);
-        REQUIRE(result.size() == std::vector<size_t>({2, 2}));
+        REQUIRE(result.size() == std::vector<int>({2, 2}));
         REQUIRE(result[{0, 0}] == 130);
         REQUIRE(result[{0, 1}] == 172);
         REQUIRE(result[{1, 0}] == 382);
@@ -2431,7 +2431,7 @@ TEST_CASE("The matmul method works correctly")
         Tensor<float> t1 = Tensor<float>::ones({2, 3, 1, 5, 5});
         Tensor<float> t2 = Tensor<float>::ones({2, 1, 4, 5, 5});
         Tensor<float> result = Tensor<float>::matmul(t1, t2);
-        REQUIRE(result.size() == std::vector<size_t>({2, 3, 4, 5, 5}));
+        REQUIRE(result.size() == std::vector<int>({2, 3, 4, 5, 5}));
     }
 
     SECTION("Autograd works for matrix x matrix product")
@@ -2609,7 +2609,7 @@ TEST_CASE("The unfold function works correctly")
     {
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({1, 1, 3, 4});
         Tensor<float> result = Tensor<float>::unfold(t1, 2, 2, 1);
-        REQUIRE(result.size() == std::vector<size_t>({1, 4, 42}));
+        REQUIRE(result.size() == std::vector<int>({1, 4, 42}));
         std::vector<int> expected_result = {
             0, 0, 0, 0,  0,  0,  0, 0, 0, 0,  0,  0,  0, 0, 0, 0, 1,  2,  3,  4, 0, 0, 0, 5, 6,  7,  8,  0,
             0, 0, 9, 10, 11, 12, 0, 0, 0, 0,  0,  0,  0, 0, 0, 0, 0,  0,  0,  0, 0, 0, 0, 0, 0,  0,  0,  0,
@@ -2631,7 +2631,7 @@ TEST_CASE("The unfold function works correctly")
     {
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({1, 1, 3, 4});
         Tensor<float> result = Tensor<float>::unfold(t1, 2, 1, 2);
-        REQUIRE(result.size() == std::vector<size_t>({1, 4, 6}));
+        REQUIRE(result.size() == std::vector<int>({1, 4, 6}));
         std::vector<int> expected_result = {0, 0, 0, 0, 6, 8, 0, 0, 0, 5, 7, 0, 0, 2, 4, 0, 10, 12, 1, 3, 0, 9, 11, 0};
 
         for (int j = 0; j < 4; j++)
@@ -2647,7 +2647,7 @@ TEST_CASE("The unfold function works correctly")
     {
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({1, 1, 3, 4});
         Tensor<float> result = Tensor<float>::unfold(t1, 3, 1, 1);
-        REQUIRE(result.size() == std::vector<size_t>({1, 9, 12}));
+        REQUIRE(result.size() == std::vector<int>({1, 9, 12}));
         std::vector<int> expected_result = {
             0, 0,  0,  0,  0,  1, 2, 3, 0, 5, 6, 7, 0,  0,  0,  0,  1, 2, 3, 4, 5, 6,
             7, 8,  0,  0,  0,  0, 2, 3, 4, 0, 6, 7, 8,  0,  0,  1,  2, 3, 0, 5, 6, 7,
@@ -2669,7 +2669,7 @@ TEST_CASE("The unfold function works correctly")
     {
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({1, 1, 3, 4});
         Tensor<float> result = Tensor<float>::unfold(t1, 2, 0, 2);
-        REQUIRE(result.size() == std::vector<size_t>({1, 4, 2}));
+        REQUIRE(result.size() == std::vector<int>({1, 4, 2}));
         std::vector<int> expected_result = {1, 3, 2, 4, 5, 7, 6, 8};
 
         for (int j = 0; j < 4; j++)
@@ -2685,7 +2685,7 @@ TEST_CASE("The unfold function works correctly")
     {
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({1, 1, 3, 4});
         Tensor<float> result = Tensor<float>::unfold(t1, 3, 2, 1);
-        REQUIRE(result.size() == std::vector<size_t>({1, 9, 30}));
+        REQUIRE(result.size() == std::vector<int>({1, 9, 30}));
         std::vector<int> expected_result = {
             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  2,  3,  4,
             0,  0,  5,  6,  7,  8,  0,  0,  9, 10, 11, 12,  0,  0,  0,  0,  0,  0,

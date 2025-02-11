@@ -64,7 +64,7 @@ template <typename T> void Tensor<T>::release()
 }
 
 // A private constructor, which is equivalent to torch.full()
-template <typename T> Tensor<T>::Tensor(const std::vector<size_t> &size, T value, bool requires_grad)
+template <typename T> Tensor<T>::Tensor(const std::vector<int> &size, T value, bool requires_grad)
 {
     strides = std::vector<int>(size.size());
     shape = size;
@@ -86,7 +86,7 @@ template <typename T> Tensor<T>::Tensor(const std::vector<size_t> &size, T value
         {
             throw std::invalid_argument("Only float or double tensors support gradients.");
         }
-        grad = new Tensor<T>(size, 0.0);
+        grad = new Tensor<T>(size, static_cast<T>(0.0));
     }
     else
     {
@@ -100,8 +100,8 @@ template <typename T> Tensor<T>::Tensor(const std::vector<size_t> &size, T value
 
 template <typename T>
 Tensor<T>::Tensor(const std::vector<T> &data, bool requires_grad)
-    : data(new TensorData<T>(data)), shape({data.size()}), offset(0), strides({1}), _backward(nullptr),
-      operand1(nullptr), operand2(nullptr)
+    : data(new TensorData<T>(data)), shape({static_cast<int>(data.size())}), offset(0), strides({1}),
+      _backward(nullptr), operand1(nullptr), operand2(nullptr)
 {
     if (requires_grad)
     {
@@ -109,7 +109,7 @@ Tensor<T>::Tensor(const std::vector<T> &data, bool requires_grad)
         {
             throw std::invalid_argument("Only float or double tensors support gradients.");
         }
-        grad = new Tensor<T>(shape, 0.0);
+        grad = new Tensor<T>(shape, static_cast<T>(0.0));
     }
     else
     {
@@ -195,12 +195,12 @@ template <typename T> Tensor<T> &Tensor<T>::operator=(Tensor<T> &&other) noexcep
     if (this != &other)
     {
         release();
-    
+
         if (grad != nullptr)
         {
             delete grad;
         }
-        
+
         data = other.data;
         shape = other.shape;
         offset = other.offset;
@@ -219,17 +219,17 @@ template <typename T> Tensor<T> &Tensor<T>::operator=(Tensor<T> &&other) noexcep
 // SECTION: Tensor's Initialization
 // ========================================================
 
-template <typename T> Tensor<T> Tensor<T>::zeros(const std::vector<size_t> &size, bool requires_grad)
+template <typename T> Tensor<T> Tensor<T>::zeros(const std::vector<int> &size, bool requires_grad)
 {
     return Tensor(size, static_cast<T>(0), requires_grad);
 }
 
-template <typename T> Tensor<T> Tensor<T>::ones(const std::vector<size_t> &size, bool requires_grad)
+template <typename T> Tensor<T> Tensor<T>::ones(const std::vector<int> &size, bool requires_grad)
 {
     return Tensor(size, static_cast<T>(1), requires_grad);
 }
 
-template <typename T> Tensor<T> Tensor<T>::randn(const std::vector<size_t> &size, bool requires_grad)
+template <typename T> Tensor<T> Tensor<T>::randn(const std::vector<int> &size, bool requires_grad)
 {
     std::default_random_engine generator;
     std::normal_distribution<T> distribution(static_cast<T>(0), static_cast<T>(1));
@@ -243,8 +243,7 @@ template <typename T> Tensor<T> Tensor<T>::randn(const std::vector<size_t> &size
     return tensor;
 }
 
-template <typename T>
-Tensor<T> Tensor<T>::xavier_normal(const std::vector<size_t> &size, float gain, bool requires_grad)
+template <typename T> Tensor<T> Tensor<T>::xavier_normal(const std::vector<int> &size, float gain, bool requires_grad)
 {
     std::default_random_engine generator;
     float std = gain * std::sqrt(2.0 / (size[0] + size[1]));
@@ -259,7 +258,7 @@ Tensor<T> Tensor<T>::xavier_normal(const std::vector<size_t> &size, float gain, 
     return tensor;
 }
 
-template <typename T> Tensor<T> Tensor<T>::kaiming_normal(const std::vector<size_t> &size, bool requires_grad)
+template <typename T> Tensor<T> Tensor<T>::kaiming_normal(const std::vector<int> &size, bool requires_grad)
 {
     std::default_random_engine generator;
     float std = std::sqrt(2.0 / (size[0]));
@@ -345,7 +344,7 @@ template <typename T> Tensor<T> Tensor<T>::operator[](const std::vector<std::pai
 
     Tensor<T> new_tensor = Tensor<T>(*this);
     new_tensor.offset = offset;
-    new_tensor.shape = std::vector<size_t>();
+    new_tensor.shape = std::vector<int>();
     new_tensor.strides = std::vector<int>();
     for (int i = 0; i < new_indices.size(); i++)
     {
@@ -445,7 +444,7 @@ template <typename T> Tensor<T> Tensor<T>::view(const std::vector<int> &size)
         throw std::invalid_argument("Can't create a tensor of this shape.");
     }
 
-    std::vector<size_t> new_size(size.begin(), size.end());
+    std::vector<int> new_size(size.begin(), size.end());
 
     for (int i = 0; i < size.size(); i++)
     {
@@ -539,7 +538,7 @@ template <typename T> bool Tensor<T>::equal(Tensor<T> &other)
     }
 
     std::vector<int> indices(shape.size(), 0);
-    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
 
     for (int i = 0; i < num_of_elements; i++)
     {
@@ -564,7 +563,7 @@ template <typename T> bool Tensor<T>::equal(Tensor<T> &other)
     return true;
 }
 
-template <typename T> std::vector<size_t> Tensor<T>::size()
+template <typename T> std::vector<int> Tensor<T>::size()
 {
     return shape;
 }
@@ -583,7 +582,7 @@ template <typename T> void Tensor<T>::backward()
     {
         throw std::invalid_argument("Can't call backward on a tensor that is not a result of a computation.");
     }
-    if (shape != std::vector<size_t>({1}))
+    if (shape != std::vector<int>({1}))
     {
         throw std::invalid_argument("Can't call backward on a tensor with more than one element.");
     }
@@ -667,25 +666,25 @@ Tensor<T> Tensor<T>::broadcast(const Tensor<T> &t1, const Tensor<T> &t2, Op op)
 {
     // Padding strides and shapes with ones, so that the number of dimensions
     // of both operands matches.
-    std::vector<size_t> t1_shape(t1.shape.begin(), t1.shape.end());
-    std::vector<size_t> t2_shape(t2.shape.begin(), t2.shape.end());
+    std::vector<int> t1_shape(t1.shape.begin(), t1.shape.end());
+    std::vector<int> t2_shape(t2.shape.begin(), t2.shape.end());
     std::vector<int> t1_strides(t1.strides.begin(), t1.strides.end());
     std::vector<int> t2_strides(t2.strides.begin(), t2.strides.end());
 
     if (t1_shape.size() < t2_shape.size())
     {
-        std::vector<size_t> padding(t2_shape.size() - t1_shape.size(), 1);
+        std::vector<int> padding(t2_shape.size() - t1_shape.size(), 1);
         t1_shape.insert(t1_shape.begin(), padding.begin(), padding.end());
         t1_strides.insert(t1_strides.begin(), padding.begin(), padding.end());
     }
     else if (t2_shape.size() < t1_shape.size())
     {
-        std::vector<size_t> padding(t1_shape.size() - t2_shape.size(), 1);
+        std::vector<int> padding(t1_shape.size() - t2_shape.size(), 1);
         t2_shape.insert(t2_shape.begin(), padding.begin(), padding.end());
         t2_strides.insert(t2_strides.begin(), padding.begin(), padding.end());
     }
 
-    std::vector<size_t> new_shape(t1_shape.size());
+    std::vector<int> new_shape(t1_shape.size());
 
     for (int i = t1_shape.size() - 1; i >= 0; i--)
     {
@@ -809,8 +808,7 @@ template <typename T> void Tensor<T>::add_backward()
             dim_op--;
         }
 
-        std::vector<int> new_shape(operand1->shape.begin(), operand1->shape.end());
-        Tensor<T> reduced_grad = this->grad->sum(dim_to_reduce, true).view(new_shape);
+        Tensor<T> reduced_grad = this->grad->sum(dim_to_reduce, true).view(operand1->shape);
         (*operand1->grad) += reduced_grad;
     }
 
@@ -830,8 +828,7 @@ template <typename T> void Tensor<T>::add_backward()
             dim_op--;
         }
 
-        std::vector<int> new_shape(operand2->shape.begin(), operand2->shape.end());
-        Tensor<T> reduced_grad = this->grad->sum(dim_to_reduce, true).view(new_shape);
+        Tensor<T> reduced_grad = this->grad->sum(dim_to_reduce, true).view(operand2->shape);
         (*operand2->grad) += reduced_grad;
     }
 }
@@ -888,8 +885,7 @@ template <typename T> void Tensor<T>::sub_backward()
             dim_op--;
         }
 
-        std::vector<int> new_shape(operand1->shape.begin(), operand1->shape.end());
-        Tensor<T> reduced_grad = this->grad->sum(dim_to_reduce, true).view(new_shape);
+        Tensor<T> reduced_grad = this->grad->sum(dim_to_reduce, true).view(operand1->shape);
         (*operand1->grad) += reduced_grad;
     }
 
@@ -909,8 +905,7 @@ template <typename T> void Tensor<T>::sub_backward()
             dim_op--;
         }
 
-        std::vector<int> new_shape(operand2->shape.begin(), operand2->shape.end());
-        Tensor<T> reduced_grad = this->grad->sum(dim_to_reduce, true).view(new_shape);
+        Tensor<T> reduced_grad = this->grad->sum(dim_to_reduce, true).view(operand2->shape);
         Tensor<T> temp = -reduced_grad;
         (*operand2->grad) += temp;
     }
@@ -1002,8 +997,7 @@ template <typename T> void Tensor<T>::mul_backward()
             dim_op--;
         }
 
-        std::vector<int> new_shape(operand1->shape.begin(), operand1->shape.end());
-        Tensor<T> reduced_grad = ((*this->grad) * (*operand2)).sum(dim_to_reduce, true).view(new_shape);
+        Tensor<T> reduced_grad = ((*this->grad) * (*operand2)).sum(dim_to_reduce, true).view(operand1->shape);
         (*operand1->grad) += reduced_grad;
     }
 
@@ -1023,8 +1017,7 @@ template <typename T> void Tensor<T>::mul_backward()
             dim_op--;
         }
 
-        std::vector<int> new_shape(operand2->shape.begin(), operand2->shape.end());
-        Tensor<T> reduced_grad = ((*this->grad) * (*operand1)).sum(dim_to_reduce, true).view(new_shape);
+        Tensor<T> reduced_grad = ((*this->grad) * (*operand1)).sum(dim_to_reduce, true).view(operand2->shape);
         (*operand2->grad) += reduced_grad;
     }
 }
@@ -1097,9 +1090,8 @@ template <typename T> void Tensor<T>::div_backward()
             dim_op--;
         }
 
-        std::vector<int> new_shape(operand1->shape.begin(), operand1->shape.end());
         Tensor<T> temp1 = static_cast<T>(1) / (*operand2);
-        Tensor<T> reduced_grad = ((*this->grad) * temp1).sum(dim_to_reduce, true).view(new_shape);
+        Tensor<T> reduced_grad = ((*this->grad) * temp1).sum(dim_to_reduce, true).view(operand1->shape);
         (*operand1->grad) += reduced_grad;
     }
 
@@ -1119,22 +1111,21 @@ template <typename T> void Tensor<T>::div_backward()
             dim_op--;
         }
 
-        std::vector<int> new_shape(operand2->shape.begin(), operand2->shape.end());
         Tensor<T> temp1 = (*operand2) * (*operand2);
         Tensor<T> temp2 = -(*operand1) / temp1;
-        Tensor<T> reduced_grad = ((*this->grad) * temp2).sum(dim_to_reduce, true).view(new_shape);
+        Tensor<T> reduced_grad = ((*this->grad) * temp2).sum(dim_to_reduce, true).view(operand2->shape);
         (*operand2->grad) += reduced_grad;
     }
 }
 
 template <typename T> Tensor<T> &Tensor<T>::operator+=(Tensor<T> &other)
 {
-    std::vector<size_t> other_shape(other.shape.begin(), other.shape.end());
+    std::vector<int> other_shape(other.shape.begin(), other.shape.end());
     std::vector<int> other_strides(other.strides.begin(), other.strides.end());
 
     if (other_shape.size() < this->shape.size())
     {
-        std::vector<size_t> padding(this->shape.size() - other_shape.size(), 1);
+        std::vector<int> padding(this->shape.size() - other_shape.size(), 1);
         other_shape.insert(other_shape.begin(), padding.begin(), padding.end());
         other_strides.insert(other_strides.begin(), padding.begin(), padding.end());
     }
@@ -1199,7 +1190,7 @@ template <typename T> Tensor<T> Tensor<T>::sum()
 {
     Tensor<T> new_tensor = Tensor<T>::zeros({1}, this->grad != nullptr);
     std::vector<int> indices(shape.size(), 0);
-    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
 
     for (int i = 0; i < num_of_elements; i++)
     {
@@ -1251,7 +1242,7 @@ template <typename T> Tensor<T> Tensor<T>::sum(const std::vector<int> &dim, bool
         }
     }
 
-    std::vector<size_t> new_shape(shape.begin(), shape.end());
+    std::vector<int> new_shape(shape.begin(), shape.end());
 
     for (int i : dim)
     {
@@ -1269,7 +1260,7 @@ template <typename T> Tensor<T> Tensor<T>::sum(const std::vector<int> &dim, bool
     int index_old = offset;
     int index_new = 0;
     std::vector<int> indices(shape.size(), 0);
-    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
 
     for (int i = 0; i < num_of_elements; i++)
     {
@@ -1489,7 +1480,7 @@ template <typename T> Tensor<int> Tensor<T>::argmax()
     int argmax = -1;
     T max_value;
     std::vector<int> indices(shape.size(), 0);
-    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
 
     for (int i = 0; i < num_of_elements; i++)
     {
@@ -1528,7 +1519,7 @@ template <typename T> Tensor<T> Tensor<T>::max()
     Tensor<int> argmax = this->argmax();
     Tensor<T> new_tensor = Tensor<T>(*this);
     new_tensor.offset = this->offset + argmax[{0}];
-    new_tensor.shape = std::vector<size_t>({1});
+    new_tensor.shape = std::vector<int>({1});
     new_tensor.strides = std::vector<int>({0});
 
     if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
@@ -1547,15 +1538,15 @@ template <typename T> Tensor<T> Tensor<T>::max()
 template <typename T> Tensor<T> Tensor<T>::mean(const std::vector<int> &dim, bool keep_dim)
 {
     Tensor<T> temp = this->sum(dim, keep_dim);
-    float num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
-    float num_of_elements_new = std::accumulate(temp.shape.begin(), temp.shape.end(), 1, std::multiplies<size_t>());
+    float num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+    float num_of_elements_new = std::accumulate(temp.shape.begin(), temp.shape.end(), 1, std::multiplies<int>());
     return temp * static_cast<T>(num_of_elements_new / num_of_elements);
 }
 
 template <typename T> Tensor<T> Tensor<T>::mean()
 {
     Tensor<T> temp = this->sum();
-    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
     return temp / static_cast<T>(num_of_elements);
 }
 
@@ -1580,7 +1571,7 @@ template <typename T> Tensor<T> Tensor<T>::var()
     Tensor<T> mean = this->mean();
     Tensor<T> diff = *this - mean;
     Tensor<T> squared_diff = diff * diff;
-    float num_of_elements = std::accumulate(this->shape.begin(), this->shape.end(), 1, std::multiplies<size_t>());
+    float num_of_elements = std::accumulate(this->shape.begin(), this->shape.end(), 1, std::multiplies<int>());
     Tensor<T> sum = squared_diff.sum();
     return sum / static_cast<T>(num_of_elements - 1);
 }
@@ -1716,12 +1707,12 @@ template <typename T> Tensor<T> Tensor<T>::mm(Tensor &t1, Tensor &t2, Tensor *ou
         throw std::invalid_argument(
             "The number of columns of the first tensor must be equal to the number of rows of the second tensor.");
     }
-    
+
     Tensor<T> new_tensor;
-    
+
     if (out == nullptr)
     {
-        std::vector<size_t> new_shape = {t1.shape[0], t2.shape[1]};
+        std::vector<int> new_shape = {t1.shape[0], t2.shape[1]};
         new_tensor =
             Tensor<T>::zeros(new_shape, (t1.grad != nullptr || t2.grad != nullptr) && !NoGradGuard::is_enabled);
     }
@@ -1729,7 +1720,7 @@ template <typename T> Tensor<T> Tensor<T>::mm(Tensor &t1, Tensor &t2, Tensor *ou
     {
         new_tensor = *out;
     }
-    
+
     for (int i = 0; i < t1.shape[0]; i++)
     {
         for (int j = 0; j < t2.shape[1]; j++)
@@ -1743,33 +1734,33 @@ template <typename T> Tensor<T> Tensor<T>::mm(Tensor &t1, Tensor &t2, Tensor *ou
             }
         }
     }
-    
+
     if (new_tensor.grad != nullptr && !NoGradGuard::is_enabled)
     {
         new_tensor._backward = &Tensor<T>::mm_backward;
         new_tensor.operand1 = new Tensor<T>(t1);
         new_tensor.operand2 = new Tensor<T>(t2);
     }
-    
+
     return new_tensor;
 }
 
 template <typename T> void Tensor<T>::mm_backward()
 {
     NoGradGuard no_grad;
-    
+
     if (this->grad == nullptr)
     {
         std::invalid_argument("Can't call backward if the gradient is nullptr.");
     }
-    
+
     if (operand1->grad != nullptr)
     {
         Tensor<T> temp = operand2->transpose(0, 1);
         Tensor<T> new_tensor_grad = Tensor<T>::mm(*this->grad, temp);
         (*operand1->grad) += new_tensor_grad;
     }
-    
+
     if (operand2->grad != nullptr)
     {
         Tensor<T> temp = operand1->transpose(0, 1);
@@ -1800,16 +1791,16 @@ template <typename T> Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
 
     if (t1_shape.size() < t2_shape.size())
     {
-        std::vector<size_t> padding(t2_shape.size() - t1_shape.size(), 1);
+        std::vector<int> padding(t2_shape.size() - t1_shape.size(), 1);
         t1_shape.insert(t1_shape.begin(), padding.begin(), padding.end());
     }
     else if (t2_shape.size() < t1_shape.size())
     {
-        std::vector<size_t> padding(t1_shape.size() - t2_shape.size(), 1);
+        std::vector<int> padding(t1_shape.size() - t2_shape.size(), 1);
         t2_shape.insert(t2_shape.begin(), padding.begin(), padding.end());
     }
 
-    std::vector<size_t> new_shape(t1_shape.size());
+    std::vector<int> new_shape(t1_shape.size());
 
     for (int i = 0; i < t1_shape.size() - 2; i++)
     {
@@ -1982,8 +1973,7 @@ void Tensor<T>::matmul_backward(std::vector<int> &t1_shape, std::vector<int> &t2
             }
         }
 
-        std::vector<int> op1_shape(operand1->shape.begin(), operand1->shape.end());
-        Tensor<T> reduced_grad = new_tensor_grad.sum(dim_to_reduce, true).view(op1_shape);
+        Tensor<T> reduced_grad = new_tensor_grad.sum(dim_to_reduce, true).view(operand1->shape);
         (*operand1->grad) += reduced_grad;
     }
 
@@ -2005,8 +1995,7 @@ void Tensor<T>::matmul_backward(std::vector<int> &t1_shape, std::vector<int> &t2
             }
         }
 
-        std::vector<int> op2_shape(operand2->shape.begin(), operand2->shape.end());
-        Tensor<T> reduced_grad = new_tensor_grad.sum(dim_to_reduce, true).view(op2_shape);
+        Tensor<T> reduced_grad = new_tensor_grad.sum(dim_to_reduce, true).view(operand2->shape);
         (*operand2->grad) += reduced_grad;
     }
 }
@@ -2017,7 +2006,7 @@ void Tensor<T>::matmul_backward(std::vector<int> &t1_shape, std::vector<int> &t2
 
 template <typename T> Tensor<T> Tensor<T>::stack(std::vector<Tensor<T>> tensors, int dim)
 {
-    std::vector<size_t> shape = tensors[0].shape;
+    std::vector<int> shape = tensors[0].shape;
 
     for (int i = 1; i < tensors.size(); i++)
     {
@@ -2027,11 +2016,11 @@ template <typename T> Tensor<T> Tensor<T>::stack(std::vector<Tensor<T>> tensors,
         }
     }
 
-    std::vector<size_t> new_shape = shape;
+    std::vector<int> new_shape = shape;
     new_shape.insert(new_shape.begin() + dim, tensors.size());
     Tensor<T> new_tensor = Tensor<T>::zeros(new_shape, false);
 
-    int num_of_elements = std::accumulate(new_shape.begin(), new_shape.end(), 1, std::multiplies<size_t>());
+    int num_of_elements = std::accumulate(new_shape.begin(), new_shape.end(), 1, std::multiplies<int>());
     std::vector<int> strides_new = new_tensor.strides;
     int offset_new = new_tensor.offset;
 
@@ -2076,9 +2065,8 @@ template <typename T> Tensor<T> Tensor<T>::unfold(Tensor &in, int kernel_size, i
     int n_rows = kernel_size * kernel_size * n_channels;
     int n_cols = n_block_row * n_block_col;
 
-    Tensor<T> new_tensor =
-        Tensor<T>::zeros({static_cast<size_t>(batch_size), static_cast<size_t>(n_rows), static_cast<size_t>(n_cols)},
-                         in.grad != nullptr);
+    Tensor<T> new_tensor = Tensor<T>::zeros(
+        {static_cast<int>(batch_size), static_cast<int>(n_rows), static_cast<int>(n_cols)}, in.grad != nullptr);
 
     int new_off = new_tensor.offset;
     int new_st0 = new_tensor.strides[0];

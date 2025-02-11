@@ -23,7 +23,7 @@ template <typename T> class Tensor
 {
   private:
     TensorData<T> *data;
-    std::vector<size_t> shape;
+    std::vector<int> shape;
     int offset;
     std::vector<int> strides;
 
@@ -35,7 +35,7 @@ template <typename T> class Tensor
 
     void release();
 
-    Tensor(const std::vector<size_t> &size, T value, bool requires_grad = false);
+    Tensor(const std::vector<int> &size, T value, bool requires_grad = false);
 
     T &operator[](const std::vector<int> &indices);
 
@@ -92,15 +92,15 @@ template <typename T> class Tensor
 
     Tensor &operator=(Tensor &&other) noexcept;
 
-    static Tensor zeros(const std::vector<size_t> &size, bool requires_grad = false);
+    static Tensor zeros(const std::vector<int> &size, bool requires_grad = false);
 
-    static Tensor ones(const std::vector<size_t> &size, bool requires_grad = false);
+    static Tensor ones(const std::vector<int> &size, bool requires_grad = false);
 
-    static Tensor randn(const std::vector<size_t> &size, bool requires_grad = false);
+    static Tensor randn(const std::vector<int> &size, bool requires_grad = false);
 
-    static Tensor xavier_normal(const std::vector<size_t> &size, float gain = 1.0, bool requires_grad = false);
+    static Tensor xavier_normal(const std::vector<int> &size, float gain = 1.0, bool requires_grad = false);
 
-    static Tensor kaiming_normal(const std::vector<size_t> &size, bool requires_grad = false);
+    static Tensor kaiming_normal(const std::vector<int> &size, bool requires_grad = false);
 
     T &operator[](const std::initializer_list<int> &indices);
 
@@ -114,7 +114,7 @@ template <typename T> class Tensor
     
     bool equal(Tensor &other);
     
-    std::vector<size_t> size();
+    std::vector<int> size();
 
     void backward();
 
