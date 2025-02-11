@@ -1,6 +1,7 @@
 #pragma once
 #include <cstddef>
 #include <functional>
+#include <numeric>
 #include <utility>
 #include <vector>
 
@@ -42,7 +43,7 @@ template <typename T> class Tensor
     Tensor operator[](const std::vector<std::pair<int, int>> &indices);
 
     template <typename Op> static Tensor broadcast(const Tensor<T> &t1, const Tensor<T> &t2, Op op);
-    
+
     size_t get_hash();
 
     bool backward_enabled() const;
@@ -70,7 +71,7 @@ template <typename T> class Tensor
     void log_backward();
 
     void relu_backward();
-    
+
     void cross_entropy_backward(int n, std::vector<int> &target);
 
     void mm_backward();
@@ -108,14 +109,117 @@ template <typename T> class Tensor
 
     Tensor operator[](const std::initializer_list<std::pair<int, int>> &indices);
 
+    class Iterator
+    {
+      private:
+        Tensor<T> &tensor;
+        int last_elem_index;
+
+      public:
+        std::vector<int> indices;
+        int data_index;
+
+        Iterator(Tensor<T> &tensor, std::vector<int> indices) : tensor(tensor), indices(indices)
+        {
+            if (tensor.numel() == 0)
+            {
+                data_index = 0;
+                last_elem_index = 0;
+            }
+            else
+            {
+                // Calculate the index of the element at (shape[0]-1, shape[1]-1, shape[2]-1, ...).
+                last_elem_index = std::inner_product(tensor.strides.begin(), tensor.strides.end(), tensor.shape.begin(),
+                                                     tensor.offset) -
+                                  std::accumulate(tensor.strides.begin(), tensor.strides.end(), 0);
+
+                data_index =
+                    std::inner_product(tensor.strides.begin(), tensor.strides.end(), indices.begin(), tensor.offset);
+            }
+        };
+
+        T &operator*()
+        {
+            return (*tensor.data)[data_index];
+        }
+
+        Iterator &operator++()
+        {
+            // If data_index == last_data_index then the for loop below would reset it back
+            // to the index of the first element. So, we need to set it manually.
+            if (data_index >= last_elem_index)
+            {
+                data_index = last_elem_index + tensor.strides.back();
+                return *this;
+            }
+
+            for (int j = indices.size() - 1; j >= 0; j--)
+            {
+                indices[j]++;
+                data_index += tensor.strides[j];
+
+                if (indices[j] >= tensor.shape[j])
+                {
+                    indices[j] = 0;
+                    data_index -= tensor.shape[j] * tensor.strides[j];
+                }
+                else
+                {
+                    break;
+                }
+            }
+            return *this;
+        }
+
+        bool operator==(const Iterator &other) const
+        {
+            return data_index == other.data_index;
+        }
+
+        bool operator!=(const Iterator &other) const
+        {
+            return !(*this == other);
+        }
+
+        Iterator &operator=(const Iterator &other)
+        {
+            indices = other.indices;
+            data_index = other.data_index;
+            return *this;
+        }
+    };
+
+    Iterator begin()
+    {
+        return Iterator(*this, std::vector<int>(shape.size(), 0));
+    }
+
+    Iterator end()
+    {
+        if (this->numel() == 0)
+        {
+            return Iterator(*this, std::vector<int>(shape.size(), 0));
+        }
+
+        std::vector<int> end_indecies = shape;
+        end_indecies.back() += 1;
+
+        for (int i = 0; i < end_indecies.size(); i++)
+        {
+            end_indecies[i] -= 1;
+        }
+
+        return Iterator(*this, end_indecies);
+    }
+
     Tensor view(const std::vector<int> &size);
 
     Tensor transpose(int dim0, int dim1);
-    
+
     Tensor clone();
-    
+
     bool equal(Tensor &other);
-    
+
     std::vector<int> size();
 
     int numel();
@@ -125,7 +229,7 @@ template <typename T> class Tensor
     void zero_grad();
 
     Tensor operator+(Tensor<T> &other);
-    
+
     Tensor operator+(T other);
 
     Tensor operator-(Tensor<T> &other);
@@ -147,7 +251,7 @@ template <typename T> class Tensor
     Tensor &operator+=(Tensor<T> &other);
 
     Tensor sum();
-    
+
     Tensor sum(const std::vector<int> &dim, bool keep_dim);
 
     Tensor sqrt();

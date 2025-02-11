@@ -119,7 +119,8 @@ Tensor<T>::Tensor(const std::vector<T> &data, bool requires_grad)
 
 template <typename T>
 Tensor<T>::Tensor()
-    : data(nullptr), grad(nullptr), offset(0), shape({}), strides({}), operand1(nullptr), operand2(nullptr), _backward()
+    : data(nullptr), grad(nullptr), offset(0), shape({0}), strides({}), operand1(nullptr), operand2(nullptr),
+      _backward()
 {
 }
 
@@ -537,27 +538,17 @@ template <typename T> bool Tensor<T>::equal(Tensor<T> &other)
         return false;
     }
 
-    std::vector<int> indices(shape.size(), 0);
-    int num_of_elements = this->numel();
+    auto it1 = this->begin();
+    auto it2 = other.begin();
 
-    for (int i = 0; i < num_of_elements; i++)
+    while (it1 != this->end() && it2 != other.end())
     {
-        if ((*this)[indices] != other[indices])
+        if (*it1 != *it2)
         {
             return false;
         }
-        for (int j = indices.size() - 1; j >= 0; j--)
-        {
-            indices[j]++;
-            if (indices[j] == shape[j])
-            {
-                indices[j] = 0;
-            }
-            else
-            {
-                break;
-            }
-        }
+        ++it1;
+        ++it2;
     }
 
     return true;
@@ -1203,27 +1194,14 @@ template <typename T> Tensor<T> &Tensor<T>::operator+=(Tensor<T> &other)
 
 template <typename T> Tensor<T> Tensor<T>::sum()
 {
-    Tensor<T> new_tensor = Tensor<T>::zeros({1}, this->grad != nullptr);
-    std::vector<int> indices(shape.size(), 0);
-    int num_of_elements = this->numel();
-
-    for (int i = 0; i < num_of_elements; i++)
+    T sum = static_cast<T>(0);
+    
+    for (T value : *this)
     {
-        new_tensor[{0}] += (*this)[indices];
-
-        for (int j = indices.size() - 1; j >= 0; j--)
-        {
-            indices[j]++;
-            if (indices[j] == shape[j])
-            {
-                indices[j] = 0;
-            }
-            else
-            {
-                break;
-            }
-        }
+        sum += value;
     }
+
+    Tensor<T> new_tensor = Tensor<T>({sum}, this->grad != nullptr);
 
     if (new_tensor.backward_enabled())
     {
@@ -1267,6 +1245,8 @@ template <typename T> Tensor<T> Tensor<T>::sum(const std::vector<int> &dim, bool
     Tensor<T> new_tensor = Tensor<T>::zeros(new_shape, this->grad != nullptr);
     std::vector<int> strides_new = new_tensor.strides;
 
+    // Setting the stride equal to 0 will make sure that the corresponding
+    // dimension in the new tensor will be reduced.
     for (int i : dim)
     {
         strides_new[i] = 0;
@@ -1492,37 +1472,18 @@ template <typename T> void Tensor<T>::log_backward()
 
 template <typename T> Tensor<int> Tensor<T>::argmax()
 {
+    int index = 0;
     int argmax = -1;
     T max_value;
-    std::vector<int> indices(shape.size(), 0);
-    int num_of_elements = this->numel();
 
-    for (int i = 0; i < num_of_elements; i++)
+    for (T value : *this)
     {
-        T value = (*this)[indices];
-
         if (argmax == -1 || value > max_value)
         {
             max_value = value;
-            argmax = 0;
-            for (int j = 0; j < indices.size(); j++)
-            {
-                argmax += indices[j] * strides[j];
-            }
+            argmax = index;
         }
-
-        for (int j = indices.size() - 1; j >= 0; j--)
-        {
-            indices[j]++;
-            if (indices[j] == shape[j])
-            {
-                indices[j] = 0;
-            }
-            else
-            {
-                break;
-            }
-        }
+        index++;
     }
 
     Tensor<int> new_tensor = Tensor<int>({argmax});
@@ -1531,9 +1492,21 @@ template <typename T> Tensor<int> Tensor<T>::argmax()
 
 template <typename T> Tensor<T> Tensor<T>::max()
 {
-    Tensor<int> argmax = this->argmax();
+    T max_value;
+    int data_argmax = -1;
+
+    for (auto it = this->begin(); it != this->end(); ++it)
+    {
+        T value = *it;
+        if (data_argmax == -1 || value > max_value)
+        {
+            max_value = value;
+            data_argmax = it.data_index;
+        }
+    }
+
     Tensor<T> new_tensor = Tensor<T>(*this);
-    new_tensor.offset = this->offset + argmax[{0}];
+    new_tensor.offset = data_argmax;
     new_tensor.shape = std::vector<int>({1});
     new_tensor.strides = std::vector<int>({0});
 

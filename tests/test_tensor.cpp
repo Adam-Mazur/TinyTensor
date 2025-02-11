@@ -71,6 +71,8 @@ TEST_CASE("Tensor initialization works properly")
     mean /= 16 * 16;
     REQUIRE(mean < 1);
     REQUIRE(mean > -1);
+    Tensor<float> t5 = Tensor<float>();
+    REQUIRE(t5.size() == std::vector<int>({0}));
 }
 
 TEST_CASE("The indexing operator works correctly")
@@ -3116,5 +3118,66 @@ TEST_CASE("The numel method works correctly")
     {
         Tensor<float> t1 = Tensor<float>::ones({2, 0, 4});
         REQUIRE(t1.numel() == 0);
+    }
+}
+
+TEST_CASE("Iterating over a tensor with a range-based loop works correctly")
+{
+    SECTION("Iterating over a simple 1D tensor")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4});
+        std::vector<float> result;
+        for (const auto &value : t1)
+        {
+            result.push_back(value);
+        }
+        REQUIRE(result == std::vector<float>({1, 2, 3, 4}));
+    }
+
+    SECTION("Iterating over an empty tensor")
+    {
+        Tensor<float> t1 = Tensor<float>();
+        REQUIRE(t1.begin() == t1.end());
+        std::vector<float> result;
+        for (const auto &value : t1)
+        {
+            result.push_back(value);
+        }
+        REQUIRE(result.empty());
+    }
+
+    SECTION("Iterating over a multidimensional tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({2, 2, 2});
+        std::vector<float> result;
+        for (const auto &value : t1)
+        {
+            result.push_back(value);
+        }
+        REQUIRE(result == std::vector<float>(8, 1.0f));
+    }
+
+    SECTION("Iterating over a sliced tensor")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8}).view({2, 4});
+        Tensor<float> t2 = t1[{{0, 2}, {1, 3}}];
+        std::vector<float> result;
+        for (const auto &value : t2)
+        {
+            result.push_back(value);
+        }
+        REQUIRE(result == std::vector<float>({2, 3, 6, 7}));
+    }
+
+    SECTION("Iterating over a transposed tensor")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6}).view({2, 3});
+        Tensor<float> t2 = t1.transpose(0, 1);
+        std::vector<float> result;
+        for (const auto &value : t2)
+        {
+            result.push_back(value);
+        }
+        REQUIRE(result == std::vector<float>({1, 4, 2, 5, 3, 6}));
     }
 }
