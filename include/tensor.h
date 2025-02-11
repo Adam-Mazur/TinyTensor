@@ -116,6 +116,8 @@ template <typename T> class Tensor
     
     std::vector<int> size();
 
+    int numel();
+
     void backward();
 
     void zero_grad();

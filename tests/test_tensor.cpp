@@ -3084,3 +3084,37 @@ TEST_CASE("The equal method works correctly")
         REQUIRE(t2.equal(t3));
     }
 }
+
+TEST_CASE("The numel method works correctly")
+{
+    SECTION("Number of elements in a simple tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4});
+        REQUIRE(t1.numel() == 16);
+    }
+
+    SECTION("Number of elements in a sliced tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4});
+        Tensor<float> t2 = t1[{{1, 3}, {1, 3}}];
+        REQUIRE(t2.numel() == 4);
+    }
+
+    SECTION("Number of elements in an empty tensor")
+    {
+        Tensor<float> t1 = Tensor<float>();
+        REQUIRE(t1.numel() == 0);
+    }
+
+    SECTION("Number of elements in a higher-dimensional tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({2, 3, 4});
+        REQUIRE(t1.numel() == 24);
+    }
+
+    SECTION("Number of elements in a tensor with one dimension being zero")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({2, 0, 4});
+        REQUIRE(t1.numel() == 0);
+    }
+}

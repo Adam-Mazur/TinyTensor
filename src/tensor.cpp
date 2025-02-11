@@ -418,7 +418,7 @@ template <typename T> Tensor<T> Tensor<T>::view(const std::vector<int> &size)
     }
 
     int num_of_elements = 1;
-    int data_size = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
+    int data_size = this->numel();
     bool full = true;
 
     for (int i = 0; i < size.size(); i++)
@@ -538,7 +538,7 @@ template <typename T> bool Tensor<T>::equal(Tensor<T> &other)
     }
 
     std::vector<int> indices(shape.size(), 0);
-    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+    int num_of_elements = this->numel();
 
     for (int i = 0; i < num_of_elements; i++)
     {
@@ -566,6 +566,16 @@ template <typename T> bool Tensor<T>::equal(Tensor<T> &other)
 template <typename T> std::vector<int> Tensor<T>::size()
 {
     return shape;
+}
+
+template <typename T> int Tensor<T>::numel()
+{
+    if (shape.size() == 0)
+    {
+        return 0;
+    }
+
+    return std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
 }
 
 // ========================================================
@@ -1190,7 +1200,7 @@ template <typename T> Tensor<T> Tensor<T>::sum()
 {
     Tensor<T> new_tensor = Tensor<T>::zeros({1}, this->grad != nullptr);
     std::vector<int> indices(shape.size(), 0);
-    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+    int num_of_elements = this->numel();
 
     for (int i = 0; i < num_of_elements; i++)
     {
@@ -1260,7 +1270,7 @@ template <typename T> Tensor<T> Tensor<T>::sum(const std::vector<int> &dim, bool
     int index_old = offset;
     int index_new = 0;
     std::vector<int> indices(shape.size(), 0);
-    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+    int num_of_elements = this->numel();
 
     for (int i = 0; i < num_of_elements; i++)
     {
@@ -1480,7 +1490,7 @@ template <typename T> Tensor<int> Tensor<T>::argmax()
     int argmax = -1;
     T max_value;
     std::vector<int> indices(shape.size(), 0);
-    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+    int num_of_elements = this->numel();
 
     for (int i = 0; i < num_of_elements; i++)
     {
@@ -1538,16 +1548,15 @@ template <typename T> Tensor<T> Tensor<T>::max()
 template <typename T> Tensor<T> Tensor<T>::mean(const std::vector<int> &dim, bool keep_dim)
 {
     Tensor<T> temp = this->sum(dim, keep_dim);
-    float num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-    float num_of_elements_new = std::accumulate(temp.shape.begin(), temp.shape.end(), 1, std::multiplies<int>());
+    float num_of_elements = this->numel();
+    float num_of_elements_new = temp.numel();
     return temp * static_cast<T>(num_of_elements_new / num_of_elements);
 }
 
 template <typename T> Tensor<T> Tensor<T>::mean()
 {
     Tensor<T> temp = this->sum();
-    int num_of_elements = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-    return temp / static_cast<T>(num_of_elements);
+    return temp / static_cast<T>(this->numel());
 }
 
 template <typename T> Tensor<T> Tensor<T>::var(const std::vector<int> &dim, bool keep_dim)
@@ -1571,9 +1580,8 @@ template <typename T> Tensor<T> Tensor<T>::var()
     Tensor<T> mean = this->mean();
     Tensor<T> diff = *this - mean;
     Tensor<T> squared_diff = diff * diff;
-    float num_of_elements = std::accumulate(this->shape.begin(), this->shape.end(), 1, std::multiplies<int>());
     Tensor<T> sum = squared_diff.sum();
-    return sum / static_cast<T>(num_of_elements - 1);
+    return sum / static_cast<T>(this->numel() - 1);
 }
 
 // ========================================================
@@ -2020,7 +2028,7 @@ template <typename T> Tensor<T> Tensor<T>::stack(std::vector<Tensor<T>> tensors,
     new_shape.insert(new_shape.begin() + dim, tensors.size());
     Tensor<T> new_tensor = Tensor<T>::zeros(new_shape, false);
 
-    int num_of_elements = std::accumulate(new_shape.begin(), new_shape.end(), 1, std::multiplies<int>());
+    int num_of_elements = new_tensor.numel();
     std::vector<int> strides_new = new_tensor.strides;
     int offset_new = new_tensor.offset;
 
