@@ -1837,6 +1837,22 @@ TEST_CASE("The relu method works correctly")
         REQUIRE(t2[{4}] == 2);
     }
 
+    SECTION("ReLU of a sliced tensor")
+    {
+        Tensor<float> t1 = Tensor<float>({-1, 0, 1, -2, 2, -3, 3, -4, 4}).view({3, 3});
+        Tensor<float> t2 = t1[{{0, 2}, {0, 2}}];
+        Tensor<float> t3 = Tensor<float>::relu(t2);
+        REQUIRE(t3[{0, 0}] == 0);
+        REQUIRE(t3[{0, 1}] == 0);
+        REQUIRE(t3[{1, 0}] == 0);
+        REQUIRE(t3[{1, 1}] == 2);
+        REQUIRE(t1[{0, 2}] == 1);
+        REQUIRE(t1[{1, 2}] == -3);
+        REQUIRE(t1[{2, 2}] == 4);
+        REQUIRE(t1[{2, 1}] == -4);
+        REQUIRE(t1[{2, 0}] == 3);
+    }
+
     SECTION("Autograd works for ReLU")
     {
         Tensor<float> t1 = Tensor<float>({-1, 0, 1, -2, 2}, true);

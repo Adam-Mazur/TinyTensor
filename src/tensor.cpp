@@ -1577,8 +1577,10 @@ template <typename T> Tensor<T> Tensor<T>::relu(Tensor<T> &t)
 {
     Tensor<T> new_tensor = t.clone();
 
-    for (T &value : new_tensor.data->vec)
+    auto end = new_tensor.end();
+    for (auto it = new_tensor.begin(); it != end; ++it)
     {
+        T &value = *it;
         value = std::max(value, static_cast<T>(0));
     }
 
@@ -1600,9 +1602,7 @@ template <typename T> void Tensor<T>::relu_backward()
 
     if (operand1->grad != nullptr)
     {
-        Tensor<T> temp = operand1->clone();
-        delete temp.grad;
-        temp.grad = nullptr;
+        Tensor<T> temp = Tensor<T>::zeros(operand1->shape);
 
         for (int i = 0; i < operand1->data->size(); i++)
         {
