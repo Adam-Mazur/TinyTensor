@@ -23,7 +23,7 @@ template <typename T> TensorData<T>::TensorData(int size, T value) : vec(size, v
 {
 }
 
-template <typename T> size_t TensorData<T>::size()
+template <typename T> size_t TensorData<T>::size() const
 {
     return vec.size();
 }
@@ -278,13 +278,13 @@ template <typename T> Tensor<T> Tensor<T>::kaiming_normal(const std::vector<int>
 // SECTION: Indexing Operators
 // ========================================================
 
-template <typename T> T &Tensor<T>::operator[](const std::initializer_list<int> &indices)
+template <typename T> T &Tensor<T>::operator[](const std::initializer_list<int> &indices) const
 {
     std::vector<int> vec_indices(indices.begin(), indices.end());
     return (*this)[vec_indices];
 }
 
-template <typename T> T &Tensor<T>::operator[](const std::vector<int> &indices)
+template <typename T> T &Tensor<T>::operator[](const std::vector<int> &indices) const
 {
     if (data == nullptr)
     {
@@ -315,13 +315,13 @@ template <typename T> T &Tensor<T>::operator[](const std::vector<int> &indices)
     return (*data)[index];
 }
 
-template <typename T> Tensor<T> Tensor<T>::operator[](const std::initializer_list<std::pair<int, int>> &indices)
+template <typename T> Tensor<T> Tensor<T>::operator[](const std::initializer_list<std::pair<int, int>> &indices) const
 {
     std::vector<std::pair<int, int>> vec_indices(indices.begin(), indices.end());
     return (*this)[vec_indices];
 }
 
-template <typename T> Tensor<T> Tensor<T>::operator[](const std::vector<std::pair<int, int>> &indices)
+template <typename T> Tensor<T> Tensor<T>::operator[](const std::vector<std::pair<int, int>> &indices) const
 {
     if (data == nullptr)
     {
@@ -388,7 +388,7 @@ template <typename T> Tensor<T> Tensor<T>::operator[](const std::vector<std::pai
 // SECTION: Tensor Misc Methods
 // ========================================================
 
-template <typename T> size_t Tensor<T>::get_hash()
+template <typename T> size_t Tensor<T>::get_hash() const
 {
     std::hash<size_t> hash_fn;
     size_t seed = reinterpret_cast<size_t>(data);
@@ -407,7 +407,7 @@ template <typename T> size_t Tensor<T>::get_hash()
     return seed;
 }
 
-template <typename T> Tensor<T> Tensor<T>::view(const std::vector<int> &size)
+template <typename T> Tensor<T> Tensor<T>::view(const std::vector<int> &size) const
 {
     // The condition for creating a view of the tensor.
     for (int i = 0; i < shape.size() - 1; i++)
@@ -480,7 +480,7 @@ template <typename T> Tensor<T> Tensor<T>::view(const std::vector<int> &size)
     return new_tensor;
 }
 
-template <typename T> Tensor<T> Tensor<T>::transpose(int dim0, int dim1)
+template <typename T> Tensor<T> Tensor<T>::transpose(int dim0, int dim1) const
 {
     if (dim0 < 0 || dim0 >= shape.size() || dim1 < 0 || dim1 >= shape.size())
     {
@@ -509,7 +509,7 @@ template <typename T> Tensor<T> Tensor<T>::transpose(int dim0, int dim1)
     return new_tensor;
 }
 
-template <typename T> Tensor<T> Tensor<T>::clone()
+template <typename T> Tensor<T> Tensor<T>::clone() const
 {
     Tensor<T> new_tensor = Tensor<T>(data->vec);
     new_tensor.shape = shape;
@@ -531,7 +531,7 @@ template <typename T> Tensor<T> Tensor<T>::clone()
     return new_tensor;
 }
 
-template <typename T> bool Tensor<T>::equal(Tensor<T> &other)
+template <typename T> bool Tensor<T>::equal(const Tensor<T> &other) const
 {
     if (shape != other.shape)
     {
@@ -557,12 +557,12 @@ template <typename T> bool Tensor<T>::equal(Tensor<T> &other)
     return true;
 }
 
-template <typename T> std::vector<int> Tensor<T>::size()
+template <typename T> std::vector<int> Tensor<T>::size() const
 {
     return shape;
 }
 
-template <typename T> int Tensor<T>::numel()
+template <typename T> int Tensor<T>::numel() const
 {
     if (shape.size() == 0)
     {
@@ -765,7 +765,7 @@ Tensor<T> Tensor<T>::broadcast(const Tensor<T> &t1, const Tensor<T> &t2, Op op)
     return new_tensor;
 }
 
-template <typename T> Tensor<T> Tensor<T>::operator+(Tensor<T> &other)
+template <typename T> Tensor<T> Tensor<T>::operator+(const Tensor<T> &other) const
 {
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other, std::plus<>());
 
@@ -779,7 +779,7 @@ template <typename T> Tensor<T> Tensor<T>::operator+(Tensor<T> &other)
     return new_tensor;
 }
 
-template <typename T> Tensor<T> Tensor<T>::operator+(T other)
+template <typename T> Tensor<T> Tensor<T>::operator+(T other) const
 {
     Tensor<T> other_tensor = Tensor<T>({other});
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other_tensor, std::plus<>());
@@ -842,7 +842,7 @@ template <typename T> void Tensor<T>::add_backward()
     }
 }
 
-template <typename T> Tensor<T> Tensor<T>::operator-(Tensor<T> &other)
+template <typename T> Tensor<T> Tensor<T>::operator-(const Tensor<T> &other) const
 {
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other, std::minus<>());
 
@@ -856,7 +856,7 @@ template <typename T> Tensor<T> Tensor<T>::operator-(Tensor<T> &other)
     return new_tensor;
 }
 
-template <typename T> Tensor<T> Tensor<T>::operator-(T other)
+template <typename T> Tensor<T> Tensor<T>::operator-(T other) const
 {
     Tensor<T> other_tensor = Tensor<T>({other});
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other_tensor, std::minus<>());
@@ -920,7 +920,7 @@ template <typename T> void Tensor<T>::sub_backward()
     }
 }
 
-template <typename T> Tensor<T> Tensor<T>::operator-()
+template <typename T> Tensor<T> Tensor<T>::operator-() const
 {
     Tensor<T> new_tensor = this->clone();
 
@@ -953,7 +953,7 @@ template <typename T> void Tensor<T>::minus_backward()
     }
 }
 
-template <typename T> Tensor<T> Tensor<T>::operator*(Tensor<T> &other)
+template <typename T> Tensor<T> Tensor<T>::operator*(const Tensor<T> &other) const
 {
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other, std::multiplies<>());
 
@@ -967,7 +967,7 @@ template <typename T> Tensor<T> Tensor<T>::operator*(Tensor<T> &other)
     return new_tensor;
 }
 
-template <typename T> Tensor<T> Tensor<T>::operator*(T other)
+template <typename T> Tensor<T> Tensor<T>::operator*(T other) const
 {
     Tensor<T> other_tensor = Tensor<T>({other});
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other_tensor, std::multiplies<>());
@@ -1031,7 +1031,7 @@ template <typename T> void Tensor<T>::mul_backward()
     }
 }
 
-template <typename T> Tensor<T> Tensor<T>::operator/(Tensor<T> &other)
+template <typename T> Tensor<T> Tensor<T>::operator/(const Tensor<T> &other) const
 {
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other, std::divides<>());
 
@@ -1045,7 +1045,7 @@ template <typename T> Tensor<T> Tensor<T>::operator/(Tensor<T> &other)
     return new_tensor;
 }
 
-template <typename T> Tensor<T> Tensor<T>::operator/(T other)
+template <typename T> Tensor<T> Tensor<T>::operator/(T other) const
 {
     Tensor<T> other_tensor = Tensor<T>({other});
     Tensor<T> new_tensor = Tensor<T>::broadcast(*this, other_tensor, std::divides<>());
@@ -1060,7 +1060,7 @@ template <typename T> Tensor<T> Tensor<T>::operator/(T other)
     return new_tensor;
 }
 
-template <typename U> Tensor<U> operator/(U other, Tensor<U> &t)
+template <typename U> Tensor<U> operator/(U other, const Tensor<U> &t)
 {
     Tensor<U> other_tensor = Tensor<U>({other});
     Tensor<U> new_tensor = Tensor<U>::broadcast(other_tensor, t, std::divides<>());
@@ -1127,7 +1127,7 @@ template <typename T> void Tensor<T>::div_backward()
     }
 }
 
-template <typename T> Tensor<T> &Tensor<T>::operator+=(Tensor<T> &other)
+template <typename T> Tensor<T> &Tensor<T>::operator+=(const Tensor<T> &other)
 {
     std::vector<int> other_shape(other.shape.begin(), other.shape.end());
     std::vector<int> other_strides(other.strides.begin(), other.strides.end());
@@ -1195,10 +1195,10 @@ template <typename T> Tensor<T> &Tensor<T>::operator+=(Tensor<T> &other)
 // SECTION: Math Methods
 // ========================================================
 
-template <typename T> Tensor<T> Tensor<T>::sum()
+template <typename T> Tensor<T> Tensor<T>::sum() const
 {
     T sum = static_cast<T>(0);
-    
+
     auto end = this->end();
     for (auto it = this->begin(); it != end; ++it)
     {
@@ -1229,7 +1229,7 @@ template <typename T> void Tensor<T>::sum_backward()
     }
 }
 
-template <typename T> Tensor<T> Tensor<T>::sum(const std::vector<int> &dim, bool keep_dim)
+template <typename T> Tensor<T> Tensor<T>::sum(const std::vector<int> &dim, bool keep_dim) const
 {
     for (int i : dim)
     {
@@ -1334,7 +1334,7 @@ template <typename T> void Tensor<T>::sum2_backward(const std::vector<int> &dim,
     }
 }
 
-template <typename T> Tensor<T> Tensor<T>::sqrt()
+template <typename T> Tensor<T> Tensor<T>::sqrt() const
 {
     Tensor<T> new_tensor = this->clone();
 
@@ -1369,7 +1369,7 @@ template <typename T> void Tensor<T>::sqrt_backward()
     }
 }
 
-template <typename T> Tensor<T> Tensor<T>::pow(T exponent)
+template <typename T> Tensor<T> Tensor<T>::pow(T exponent) const
 {
     Tensor<T> new_tensor = this->clone();
 
@@ -1405,7 +1405,7 @@ template <typename T> void Tensor<T>::pow_backward(T exponent)
     }
 }
 
-template <typename T> Tensor<T> Tensor<T>::exp()
+template <typename T> Tensor<T> Tensor<T>::exp() const
 {
     Tensor<T> new_tensor = this->clone();
 
@@ -1439,7 +1439,7 @@ template <typename T> void Tensor<T>::exp_backward()
     }
 }
 
-template <typename T> Tensor<T> Tensor<T>::log()
+template <typename T> Tensor<T> Tensor<T>::log() const
 {
     Tensor<T> new_tensor = this->clone();
 
@@ -1474,7 +1474,7 @@ template <typename T> void Tensor<T>::log_backward()
     }
 }
 
-template <typename T> Tensor<int> Tensor<T>::argmax()
+template <typename T> Tensor<int> Tensor<T>::argmax() const
 {
     int index = 0;
     int argmax = -1;
@@ -1496,7 +1496,7 @@ template <typename T> Tensor<int> Tensor<T>::argmax()
     return new_tensor;
 }
 
-template <typename T> Tensor<T> Tensor<T>::max()
+template <typename T> Tensor<T> Tensor<T>::max() const
 {
     T max_value;
     int data_argmax = -1;
@@ -1530,7 +1530,7 @@ template <typename T> Tensor<T> Tensor<T>::max()
     return new_tensor;
 }
 
-template <typename T> Tensor<int> Tensor<T>::argmin()
+template <typename T> Tensor<int> Tensor<T>::argmin() const
 {
     int index = 0;
     int argmin = -1;
@@ -1552,7 +1552,7 @@ template <typename T> Tensor<int> Tensor<T>::argmin()
     return new_tensor;
 }
 
-template <typename T> Tensor<T> Tensor<T>::min()
+template <typename T> Tensor<T> Tensor<T>::min() const
 {
     T min_value;
     int data_argmin = -1;
@@ -1586,7 +1586,7 @@ template <typename T> Tensor<T> Tensor<T>::min()
     return new_tensor;
 }
 
-template <typename T> Tensor<T> Tensor<T>::mean(const std::vector<int> &dim, bool keep_dim)
+template <typename T> Tensor<T> Tensor<T>::mean(const std::vector<int> &dim, bool keep_dim) const
 {
     Tensor<T> temp = this->sum(dim, keep_dim);
     float num_of_elements = this->numel();
@@ -1594,13 +1594,13 @@ template <typename T> Tensor<T> Tensor<T>::mean(const std::vector<int> &dim, boo
     return temp * static_cast<T>(num_of_elements_new / num_of_elements);
 }
 
-template <typename T> Tensor<T> Tensor<T>::mean()
+template <typename T> Tensor<T> Tensor<T>::mean() const
 {
     Tensor<T> temp = this->sum();
     return temp / static_cast<T>(this->numel());
 }
 
-template <typename T> Tensor<T> Tensor<T>::var(const std::vector<int> &dim, bool keep_dim)
+template <typename T> Tensor<T> Tensor<T>::var(const std::vector<int> &dim, bool keep_dim) const
 {
     Tensor<T> mean = this->mean(dim, true);
     Tensor<T> diff = *this - mean;
@@ -1616,7 +1616,7 @@ template <typename T> Tensor<T> Tensor<T>::var(const std::vector<int> &dim, bool
     return sum / static_cast<T>(num_of_elements - 1);
 }
 
-template <typename T> Tensor<T> Tensor<T>::var()
+template <typename T> Tensor<T> Tensor<T>::var() const
 {
     Tensor<T> mean = this->mean();
     Tensor<T> diff = *this - mean;
@@ -1629,7 +1629,7 @@ template <typename T> Tensor<T> Tensor<T>::var()
 // SECTION: Activation Functions
 // ========================================================
 
-template <typename T> Tensor<T> Tensor<T>::relu(Tensor<T> &t)
+template <typename T> Tensor<T> Tensor<T>::relu(const Tensor<T> &t)
 {
     Tensor<T> new_tensor = t.clone();
 
@@ -1677,7 +1677,7 @@ template <typename T> void Tensor<T>::relu_backward()
     }
 }
 
-template <typename T> Tensor<T> Tensor<T>::sigmoid(Tensor<T> &t)
+template <typename T> Tensor<T> Tensor<T>::sigmoid(const Tensor<T> &t)
 {
     Tensor<T> temp1 = -t;
     Tensor<T> temp2 = temp1.exp();
@@ -1685,7 +1685,7 @@ template <typename T> Tensor<T> Tensor<T>::sigmoid(Tensor<T> &t)
     return static_cast<T>(1) / temp3;
 }
 
-template <typename T> Tensor<T> Tensor<T>::softmax(Tensor<T> &t, int dim)
+template <typename T> Tensor<T> Tensor<T>::softmax(const Tensor<T> &t, int dim)
 {
     Tensor<T> temp1 = t.max();
     Tensor<T> temp2 = t - temp1;
@@ -1698,7 +1698,7 @@ template <typename T> Tensor<T> Tensor<T>::softmax(Tensor<T> &t, int dim)
 // SECTION: Loss Functions
 // ========================================================
 
-template <typename T> Tensor<T> Tensor<T>::cross_entropy(Tensor<T> &input, Tensor<int> &target)
+template <typename T> Tensor<T> Tensor<T>::cross_entropy(const Tensor<T> &input, const Tensor<int> &target)
 {
     Tensor<T> softmax_output = Tensor<T>::softmax(input, 1);
     Tensor<T> log_softmax_output = softmax_output.log();
@@ -1727,7 +1727,7 @@ template <typename T> Tensor<T> Tensor<T>::cross_entropy(Tensor<T> &input, Tenso
     return output;
 }
 
-template <typename T> void Tensor<T>::cross_entropy_backward(int n, std::vector<int> &target)
+template <typename T> void Tensor<T>::cross_entropy_backward(int n, const std::vector<int> &target)
 {
     if (this->grad == nullptr)
     {
@@ -1745,7 +1745,7 @@ template <typename T> void Tensor<T>::cross_entropy_backward(int n, std::vector<
 // SECTION: Matrix Multiplication
 // ========================================================
 
-template <typename T> Tensor<T> Tensor<T>::mm(Tensor &t1, Tensor &t2, Tensor *out)
+template <typename T> Tensor<T> Tensor<T>::mm(const Tensor &t1, const Tensor &t2, Tensor *out)
 {
     if (t1.shape.size() != 2 || t2.shape.size() != 2)
     {
@@ -1817,7 +1817,7 @@ template <typename T> void Tensor<T>::mm_backward()
     }
 }
 
-template <typename T> Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
+template <typename T> Tensor<T> Tensor<T>::matmul(const Tensor<T> &t1, const Tensor<T> &t2)
 {
     NoGradGuard no_grad;
 
@@ -1992,7 +1992,8 @@ template <typename T> Tensor<T> Tensor<T>::matmul(Tensor<T> &t1, Tensor<T> &t2)
 }
 
 template <typename T>
-void Tensor<T>::matmul_backward(std::vector<int> &t1_shape, std::vector<int> &t2_shape, std::vector<int> &new_shape)
+void Tensor<T>::matmul_backward(const std::vector<int> &t1_shape, const std::vector<int> &t2_shape,
+                                const std::vector<int> &new_shape)
 {
     NoGradGuard no_grad;
 
@@ -2052,7 +2053,7 @@ void Tensor<T>::matmul_backward(std::vector<int> &t1_shape, std::vector<int> &t2
 // SECTION: Misc Matrix Methods
 // ========================================================
 
-template <typename T> Tensor<T> Tensor<T>::stack(std::vector<Tensor<T>> tensors, int dim)
+template <typename T> Tensor<T> Tensor<T>::stack(const std::vector<Tensor<T>> tensors, int dim)
 {
     std::vector<int> shape = tensors[0].shape;
 
@@ -2100,7 +2101,7 @@ template <typename T> Tensor<T> Tensor<T>::stack(std::vector<Tensor<T>> tensors,
     return new_tensor;
 }
 
-template <typename T> Tensor<T> Tensor<T>::unfold(Tensor &in, int kernel_size, int padding, int stride)
+template <typename T> Tensor<T> Tensor<T>::unfold(const Tensor &in, int kernel_size, int padding, int stride)
 {
     int batch_size = in.shape[0];
     int n_channels = in.shape[1];

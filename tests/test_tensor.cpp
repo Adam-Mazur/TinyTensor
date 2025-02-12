@@ -1444,7 +1444,7 @@ TEST_CASE("The argmin method works correctly")
         Tensor<float> t1 = Tensor<float>::ones({5}) * 5;
         t1[{0}] = -10;
         t1[{4}] = -8;
-        Tensor<float> t2 = t1[{{1, 5}}];
+        Tensor<float> t2 = t1[{{1, 5},}];
         Tensor<int> t3 = t2.argmin();
         REQUIRE(t3[{0}] == 3);
     }

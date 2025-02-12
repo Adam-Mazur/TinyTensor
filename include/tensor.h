@@ -13,7 +13,7 @@ template <typename T> struct TensorData
     TensorData(const std::vector<T> &data);
     TensorData(int size, T value);
 
-    size_t size();
+    size_t size() const;
 
     T &operator[](size_t index);
 
@@ -38,13 +38,13 @@ template <typename T> class Tensor
 
     Tensor(const std::vector<int> &size, T value, bool requires_grad = false);
 
-    T &operator[](const std::vector<int> &indices);
+    T &operator[](const std::vector<int> &indices) const;
 
-    Tensor operator[](const std::vector<std::pair<int, int>> &indices);
+    Tensor operator[](const std::vector<std::pair<int, int>> &indices) const;
 
     template <typename Op> static Tensor broadcast(const Tensor<T> &t1, const Tensor<T> &t2, Op op);
 
-    size_t get_hash();
+    size_t get_hash() const;
 
     bool backward_enabled() const;
 
@@ -72,11 +72,12 @@ template <typename T> class Tensor
 
     void relu_backward();
 
-    void cross_entropy_backward(int n, std::vector<int> &target);
+    void cross_entropy_backward(int n, const std::vector<int> &target);
 
     void mm_backward();
 
-    void matmul_backward(std::vector<int> &t1_shape, std::vector<int> &t2_shape, std::vector<int> &new_shape);
+    void matmul_backward(const std::vector<int> &t1_shape, const std::vector<int> &t2_shape,
+                         const std::vector<int> &new_shape);
 
     void unfold_backward(int kernel_size, int padding, int stride);
 
@@ -105,9 +106,9 @@ template <typename T> class Tensor
 
     static Tensor kaiming_normal(const std::vector<int> &size, bool requires_grad = false);
 
-    T &operator[](const std::initializer_list<int> &indices);
+    T &operator[](const std::initializer_list<int> &indices) const;
 
-    Tensor operator[](const std::initializer_list<std::pair<int, int>> &indices);
+    Tensor operator[](const std::initializer_list<std::pair<int, int>> &indices) const;
 
     class Iterator
     {
@@ -119,7 +120,7 @@ template <typename T> class Tensor
         std::vector<int> indices;
         int data_index;
 
-        Iterator(Tensor<T> &tensor, std::vector<int> indices) : tensor(tensor), indices(indices)
+        Iterator(Tensor<T> &tensor, const std::vector<int> indices) : tensor(tensor), indices(indices)
         {
             if (tensor.numel() == 0)
             {
@@ -137,6 +138,9 @@ template <typename T> class Tensor
                     std::inner_product(tensor.strides.begin(), tensor.strides.end(), indices.begin(), tensor.offset);
             }
         };
+
+        Iterator(const Tensor<T> &tensor, const std::vector<int> indices)
+            : Iterator(const_cast<Tensor<T> &>(tensor), indices) {};
 
         T &operator*()
         {
@@ -212,87 +216,98 @@ template <typename T> class Tensor
         return Iterator(*this, end_indecies);
     }
 
-    Tensor view(const std::vector<int> &size);
+    // This is to allow const Tensor to use the non-const begin() and end() functions.
+    const Iterator begin() const
+    {
+        return const_cast<Tensor<T> &>(*this).begin(); 
+    }
 
-    Tensor transpose(int dim0, int dim1);
+    const Iterator end() const
+    {
+        return const_cast<Tensor<T> &>(*this).end(); 
+    }
 
-    Tensor clone();
+    Tensor view(const std::vector<int> &size) const;
 
-    bool equal(Tensor &other);
+    Tensor transpose(int dim0, int dim1) const;
 
-    std::vector<int> size();
+    Tensor clone() const;
 
-    int numel();
+    bool equal(const Tensor &other) const;
+
+    std::vector<int> size() const;
+
+    int numel() const;
 
     void backward();
 
     void zero_grad();
 
-    Tensor operator+(Tensor<T> &other);
+    Tensor operator+(const Tensor<T> &other) const;
 
-    Tensor operator+(T other);
+    Tensor operator+(T other) const;
 
-    Tensor operator-(Tensor<T> &other);
+    Tensor operator-(const Tensor<T> &other) const;
 
-    Tensor operator-(T other);
+    Tensor operator-(T other) const;
 
-    Tensor operator-();
+    Tensor operator-() const;
 
-    Tensor operator*(Tensor<T> &other);
+    Tensor operator*(const Tensor<T> &other) const;
 
-    Tensor operator*(T other);
+    Tensor operator*(T other) const;
 
-    Tensor operator/(Tensor<T> &other);
+    Tensor operator/(const Tensor<T> &other) const;
 
-    Tensor operator/(T other);
+    Tensor operator/(T other) const;
 
-    template <typename U> friend Tensor<U> operator/(U other, Tensor<U> &t);
+    template <typename U> friend Tensor<U> operator/(U other, const Tensor<U> &t);
 
-    Tensor &operator+=(Tensor<T> &other);
+    Tensor &operator+=(const Tensor<T> &other);
 
-    Tensor sum();
+    Tensor sum() const;
 
-    Tensor sum(const std::vector<int> &dim, bool keep_dim);
+    Tensor sum(const std::vector<int> &dim, bool keep_dim) const;
 
-    Tensor sqrt();
+    Tensor sqrt() const;
 
-    Tensor pow(T exponent);
+    Tensor pow(T exponent) const;
 
-    Tensor exp();
+    Tensor exp() const;
 
-    Tensor log();
+    Tensor log() const;
 
-    Tensor<int> argmax();
+    Tensor<int> argmax() const;
 
-    Tensor max();
+    Tensor max() const;
 
-    Tensor<int> argmin();
+    Tensor<int> argmin() const;
 
-    Tensor min();
+    Tensor min() const;
 
-    Tensor mean(const std::vector<int> &dim, bool keep_dim);
+    Tensor mean(const std::vector<int> &dim, bool keep_dim) const;
 
-    Tensor mean();
+    Tensor mean() const;
 
-    Tensor var(const std::vector<int> &dim, bool keep_dim);
+    Tensor var(const std::vector<int> &dim, bool keep_dim) const;
 
-    Tensor var();
+    Tensor var() const;
 
-    static Tensor relu(Tensor &t);
+    static Tensor relu(const Tensor &t);
 
-    static Tensor sigmoid(Tensor &tm);
+    static Tensor sigmoid(const Tensor &tm);
 
-    static Tensor softmax(Tensor &t, int dim = 0);
+    static Tensor softmax(const Tensor &t, int dim = 0);
 
-    static Tensor cross_entropy(Tensor &input, Tensor<int> &target);
+    static Tensor cross_entropy(const Tensor &input, const Tensor<int> &target);
 
-    static Tensor mm(Tensor &t1, Tensor &t2, Tensor *out = nullptr);
+    static Tensor mm(const Tensor &t1, const Tensor &t2, Tensor *out = nullptr);
 
-    static Tensor matmul(Tensor &t1, Tensor &t2);
+    static Tensor matmul(const Tensor &t1, const Tensor &t2);
 
-    static Tensor stack(std::vector<Tensor> tensors, int dim = 0);
+    static Tensor stack(const std::vector<Tensor> tensors, int dim = 0);
 
-    static Tensor unfold(Tensor &in, int kernel_size, int padding, int stride);
+    static Tensor unfold(const Tensor &in, int kernel_size, int padding, int stride);
 
     ~Tensor();
 };
