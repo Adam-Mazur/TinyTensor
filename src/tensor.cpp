@@ -924,10 +924,12 @@ template <typename T> Tensor<T> Tensor<T>::operator-() const
 {
     Tensor<T> new_tensor = this->clone();
 
-    for (T &value : new_tensor.data->vec)
+    auto end = new_tensor.end();
+    for (auto it = new_tensor.begin(); it != end; ++it)
     {
-        value = -value;
+        *it = -(*it);
     }
+
 
     if (new_tensor.backward_enabled())
     {
@@ -1338,9 +1340,10 @@ template <typename T> Tensor<T> Tensor<T>::sqrt() const
 {
     Tensor<T> new_tensor = this->clone();
 
-    for (T &value : new_tensor.data->vec)
+    auto end = new_tensor.end();
+    for (auto it = new_tensor.begin(); it != end; ++it)
     {
-        value = std::sqrt(value);
+        *it = std::sqrt(*it);
     }
 
     if (new_tensor.backward_enabled())
@@ -1373,9 +1376,10 @@ template <typename T> Tensor<T> Tensor<T>::pow(T exponent) const
 {
     Tensor<T> new_tensor = this->clone();
 
-    for (T &value : new_tensor.data->vec)
+    auto end = new_tensor.end();
+    for (auto it = new_tensor.begin(); it != end; ++it)
     {
-        value = std::pow(value, exponent);
+        *it = std::pow(*it, exponent);
     }
 
     if (new_tensor.backward_enabled())
@@ -1409,9 +1413,10 @@ template <typename T> Tensor<T> Tensor<T>::exp() const
 {
     Tensor<T> new_tensor = this->clone();
 
-    for (T &value : new_tensor.data->vec)
+    auto end = new_tensor.end();
+    for (auto it = new_tensor.begin(); it != end; ++it)
     {
-        value = std::exp(value);
+        *it = std::exp(*it);
     }
 
     if (new_tensor.backward_enabled())
@@ -1443,9 +1448,10 @@ template <typename T> Tensor<T> Tensor<T>::log() const
 {
     Tensor<T> new_tensor = this->clone();
 
-    for (T &value : new_tensor.data->vec)
+    auto end = new_tensor.end();
+    for (auto it = new_tensor.begin(); it != end; ++it)
     {
-        value = std::log(value);
+        *it = std::log(*it);
     }
 
     if (new_tensor.backward_enabled())
