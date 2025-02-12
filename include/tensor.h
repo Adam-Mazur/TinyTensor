@@ -266,6 +266,10 @@ template <typename T> class Tensor
 
     Tensor max();
 
+    Tensor<int> argmin();
+
+    Tensor min();
+
     Tensor mean(const std::vector<int> &dim, bool keep_dim);
 
     Tensor mean();

@@ -1290,6 +1290,53 @@ TEST_CASE("The max method works correctly")
     }
 }
 
+TEST_CASE("The min method works correctly")
+{
+    SECTION("Min of a 1D tensor")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5});
+        Tensor<float> t2 = t1.min();
+        REQUIRE(t2[{0}] == 1);
+    }
+
+    SECTION("Min of a 3D tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({2, 2, 2}) * 5;
+        t1[{0, 0, 0}] = -10;
+        Tensor<float> t2 = t1.min();
+        REQUIRE(t2[{0}] == -10);
+    }
+
+    SECTION("Min of a tensor with mixed values")
+    {
+        Tensor<float> t1 = Tensor<float>({-1, 2, -3, 4, -5, 2}).view({2, -1});
+        Tensor<float> t2 = t1.min();
+        REQUIRE(t2[{0}] == -5);
+    }
+
+    SECTION("Autograd works for min")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5}, true);
+        Tensor<float> t2 = t1.min();
+        t2.backward();
+        std::vector<float> expected_grad = {1, 0, 0, 0, 0};
+        for (int i = 0; i < 5; i++)
+        {
+            REQUIRE((*t1.grad)[{i}] == expected_grad[i]);
+        }
+    }
+
+    SECTION("Min of a slice of a tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 4}) * 5;
+        t1[{0, 0}] = -100;
+        t1[{2, 2}] = -10;
+        Tensor<float> t2 = t1[{{1, 3}, {1, 3}}];
+        Tensor<float> t3 = t2.min();
+        REQUIRE(t3[{0}] == -10);
+    }
+}
+
 TEST_CASE("Autograd works for the sum method with and without dim and keepdim")
 {
     SECTION(".backward works for sum without dim")
@@ -1364,6 +1411,41 @@ TEST_CASE("The argmax method works correctly")
         t1[{4}] = 8;
         Tensor<float> t2 = t1[{{1, 5}}];
         Tensor<int> t3 = t2.argmax();
+        REQUIRE(t3[{0}] == 3);
+    }
+}
+
+TEST_CASE("The argmin method works correctly")
+{
+    SECTION("Argmin of a 1D tensor")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5});
+        Tensor<int> t2 = t1.argmin();
+        REQUIRE(t2[{0}] == 0);
+    }
+
+    SECTION("Argmin of a 3D tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({2, 2, 2}) * 5;
+        t1[{0, 0, 0}] = -10;
+        Tensor<int> t2 = t1.argmin();
+        REQUIRE(t2[{0}] == 0);
+    }
+
+    SECTION("Argmin of a tensor with mixed values")
+    {
+        Tensor<float> t1 = Tensor<float>({-1, 2, -3, 4, -5, 2}).view({2, -1});
+        Tensor<int> t2 = t1.argmin();
+        REQUIRE(t2[{0}] == 4);
+    }
+
+    SECTION("Argmin of a slice of a tensor")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({5}) * 5;
+        t1[{0}] = -10;
+        t1[{4}] = -8;
+        Tensor<float> t2 = t1[{{1, 5}}];
+        Tensor<int> t3 = t2.argmin();
         REQUIRE(t3[{0}] == 3);
     }
 }

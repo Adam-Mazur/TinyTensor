@@ -1530,6 +1530,62 @@ template <typename T> Tensor<T> Tensor<T>::max()
     return new_tensor;
 }
 
+template <typename T> Tensor<int> Tensor<T>::argmin()
+{
+    int index = 0;
+    int argmin = -1;
+    T min_value;
+
+    auto end = this->end();
+    for (auto it = this->begin(); it != end; ++it)
+    {
+        T value = *it;
+        if (argmin == -1 || value < min_value)
+        {
+            min_value = value;
+            argmin = index;
+        }
+        index++;
+    }
+
+    Tensor<int> new_tensor = Tensor<int>({argmin});
+    return new_tensor;
+}
+
+template <typename T> Tensor<T> Tensor<T>::min()
+{
+    T min_value;
+    int data_argmin = -1;
+
+    auto end = this->end();
+    for (auto it = this->begin(); it != end; ++it)
+    {
+        T value = *it;
+        if (data_argmin == -1 || value < min_value)
+        {
+            min_value = value;
+            data_argmin = it.data_index;
+        }
+    }
+
+    Tensor<T> new_tensor = Tensor<T>(*this);
+    new_tensor.offset = data_argmin;
+    new_tensor.shape = std::vector<int>({1});
+    new_tensor.strides = std::vector<int>({0});
+
+    if (new_tensor.backward_enabled())
+    {
+        new_tensor.grad->shape = new_tensor.shape;
+        new_tensor.grad->strides = new_tensor.strides;
+        new_tensor.grad->offset = new_tensor.offset;
+        new_tensor.operand1 = new Tensor<T>(*this);
+        new_tensor.operand2 = nullptr;
+        new_tensor._backward = [](Tensor<T> *) {};
+    }
+
+    return new_tensor;
+}
+
 template <typename T> Tensor<T> Tensor<T>::mean(const std::vector<int> &dim, bool keep_dim)
 {
     Tensor<T> temp = this->sum(dim, keep_dim);
