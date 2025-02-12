@@ -541,7 +541,10 @@ template <typename T> bool Tensor<T>::equal(Tensor<T> &other)
     auto it1 = this->begin();
     auto it2 = other.begin();
 
-    while (it1 != this->end() && it2 != other.end())
+    auto end1 = this->end();
+    auto end2 = other.end();
+
+    while (it1 != end1 && it2 != end2)
     {
         if (*it1 != *it2)
         {
@@ -1196,9 +1199,10 @@ template <typename T> Tensor<T> Tensor<T>::sum()
 {
     T sum = static_cast<T>(0);
     
-    for (T value : *this)
+    auto end = this->end();
+    for (auto it = this->begin(); it != end; ++it)
     {
-        sum += value;
+        sum += *it;
     }
 
     Tensor<T> new_tensor = Tensor<T>({sum}, this->grad != nullptr);
@@ -1476,8 +1480,10 @@ template <typename T> Tensor<int> Tensor<T>::argmax()
     int argmax = -1;
     T max_value;
 
-    for (T value : *this)
+    auto end = this->end();
+    for (auto it = this->begin(); it != end; ++it)
     {
+        T value = *it;
         if (argmax == -1 || value > max_value)
         {
             max_value = value;
@@ -1495,7 +1501,8 @@ template <typename T> Tensor<T> Tensor<T>::max()
     T max_value;
     int data_argmax = -1;
 
-    for (auto it = this->begin(); it != this->end(); ++it)
+    auto end = this->end();
+    for (auto it = this->begin(); it != end; ++it)
     {
         T value = *it;
         if (data_argmax == -1 || value > max_value)
