@@ -1,6 +1,7 @@
 #include "../include/tensor.h"
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <cmath>
 #include <utility>
 
 TEST_CASE("The tensor copy and move operations work properly")
@@ -515,6 +516,20 @@ TEST_CASE("Arithmetic operations work correctly")
             for (int j = 0; j < 4; j++)
             {
                 REQUIRE(t3[{i, j}] == 1);
+            }
+        }
+    }
+
+    SECTION("Division works correctly with 0")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({3, 4});
+        Tensor<float> t2 = Tensor<float>::zeros({3, 4});
+        Tensor<float> t3 = t1 / t2;
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                REQUIRE(std::isinf(t3[{i, j}]));
             }
         }
     }
@@ -1288,6 +1303,12 @@ TEST_CASE("The max method works correctly")
         Tensor<float> t3 = t2.max();
         REQUIRE(t3[{0}] == 10);
     }
+
+    SECTION("Max throws an error for an empty tensor")
+    {
+        Tensor<float> t1 = Tensor<float>();
+        REQUIRE_THROWS(t1.max());
+    }
 }
 
 TEST_CASE("The min method works correctly")
@@ -1334,6 +1355,12 @@ TEST_CASE("The min method works correctly")
         Tensor<float> t2 = t1[{{1, 3}, {1, 3}}];
         Tensor<float> t3 = t2.min();
         REQUIRE(t3[{0}] == -10);
+    }
+
+    SECTION("Min throws an error for an empty tensor")
+    {
+        Tensor<float> t1 = Tensor<float>();
+        REQUIRE_THROWS(t1.min());
     }
 }
 
@@ -1413,6 +1440,12 @@ TEST_CASE("The argmax method works correctly")
         Tensor<int> t3 = t2.argmax();
         REQUIRE(t3[{0}] == 3);
     }
+
+    SECTION("Argmax throws an error for an empty tensor")
+    {
+        Tensor<float> t1 = Tensor<float>();
+        REQUIRE_THROWS(t1.argmax());
+    }
 }
 
 TEST_CASE("The argmin method works correctly")
@@ -1448,6 +1481,12 @@ TEST_CASE("The argmin method works correctly")
         Tensor<int> t3 = t2.argmin();
         REQUIRE(t3[{0}] == 3);
     }
+
+    SECTION("Argmin throws an error for an empty tensor")
+    {
+        Tensor<float> t1 = Tensor<float>();
+        REQUIRE_THROWS(t1.argmin());
+    }
 }
 
 TEST_CASE("The mean method works correctly")
@@ -1464,6 +1503,13 @@ TEST_CASE("The mean method works correctly")
         Tensor<float> t1 = Tensor<float>::ones({2, 2, 2}) * 4;
         Tensor<float> t2 = t1.mean();
         REQUIRE(t2[{0}] == 4);
+    }
+
+    SECTION("Mean works for an empty tensor")
+    {
+        Tensor<float> t1 = Tensor<float>();
+        Tensor<float> t2 = t1.mean();
+        REQUIRE_THAT((t2[{0}]), Catch::Matchers::IsNaN());
     }
 }
 
@@ -1628,6 +1674,12 @@ TEST_CASE("The var method works correctly")
         Tensor<float> t2 = t1.var();
         REQUIRE_THAT((t2[{0}]), Catch::Matchers::WithinRel(11.766f, 0.01f));
     }
+
+    SECTION("Var throws an error for an empty tensor")
+    {
+        Tensor<float> t1 = Tensor<float>();
+        REQUIRE_THROWS(t1.var());
+    }
 }
 
 TEST_CASE("The var method with dimension and keep_dim works correctly")
@@ -1772,6 +1824,17 @@ TEST_CASE("The sqrt method works correctly")
             REQUIRE_THAT(((*t1.grad)[{i}]), Catch::Matchers::WithinRel(expected_grad[i], 0.01f));
         }
     }
+
+    SECTION("Sqrt works correctly with negative values")
+    {
+        Tensor<float> t1 = Tensor<float>({-1, -4, -9, -16, -25});
+        Tensor<float> t2 = t1.sqrt();
+        REQUIRE_THAT((t2[{0}]), Catch::Matchers::IsNaN());
+        REQUIRE_THAT((t2[{1}]), Catch::Matchers::IsNaN());
+        REQUIRE_THAT((t2[{2}]), Catch::Matchers::IsNaN());
+        REQUIRE_THAT((t2[{3}]), Catch::Matchers::IsNaN());
+        REQUIRE_THAT((t2[{4}]), Catch::Matchers::IsNaN());
+    }
 }
 
 TEST_CASE("The pow method works correctly")
@@ -1811,6 +1874,17 @@ TEST_CASE("The pow method works correctly")
         {
             REQUIRE_THAT(((*t1.grad)[{i}]), Catch::Matchers::WithinRel(expected_grad[i], 0.01f));
         }
+    }
+
+    SECTION("Pow works correctly with negative base and fractional component")
+    {
+        Tensor<float> t1 = Tensor<float>({-1, -2, -3, -4, -5});
+        Tensor<float> t2 = t1.pow(0.5);
+        REQUIRE_THAT((t2[{0}]), Catch::Matchers::IsNaN());
+        REQUIRE_THAT((t2[{1}]), Catch::Matchers::IsNaN());
+        REQUIRE_THAT((t2[{2}]), Catch::Matchers::IsNaN());
+        REQUIRE_THAT((t2[{3}]), Catch::Matchers::IsNaN());
+        REQUIRE_THAT((t2[{4}]), Catch::Matchers::IsNaN());
     }
 }
 
@@ -2029,6 +2103,17 @@ TEST_CASE("The log method works correctly")
         {
             REQUIRE_THAT(((*t1.grad)[{i}]), Catch::Matchers::WithinRel(expected_grad[i], 0.01f));
         }
+    }
+
+    SECTION("Log works correctly with negative values")
+    {
+        Tensor<float> t1 = Tensor<float>({-1, -2, -3, -4, -5});
+        Tensor<float> t2 = t1.log();
+        REQUIRE_THAT((t2[{0}]), Catch::Matchers::IsNaN());
+        REQUIRE_THAT((t2[{1}]), Catch::Matchers::IsNaN());
+        REQUIRE_THAT((t2[{2}]), Catch::Matchers::IsNaN());
+        REQUIRE_THAT((t2[{3}]), Catch::Matchers::IsNaN());
+        REQUIRE_THAT((t2[{4}]), Catch::Matchers::IsNaN());
     }
 }
 

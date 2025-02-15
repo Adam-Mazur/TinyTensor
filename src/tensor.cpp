@@ -1482,6 +1482,11 @@ template <typename T> void Tensor<T>::log_backward()
 
 template <typename T> Tensor<int> Tensor<T>::argmax() const
 {
+    if (this->numel() == 0)
+    {
+        throw std::invalid_argument("Can't call argmax on an empty tensor.");
+    }
+
     int index = 0;
     int argmax = -1;
     T max_value;
@@ -1504,6 +1509,11 @@ template <typename T> Tensor<int> Tensor<T>::argmax() const
 
 template <typename T> Tensor<T> Tensor<T>::max() const
 {
+    if (this->numel() == 0)
+    {
+        throw std::invalid_argument("Can't call max on an empty tensor.");
+    }
+
     T max_value;
     int data_argmax = -1;
 
@@ -1538,6 +1548,11 @@ template <typename T> Tensor<T> Tensor<T>::max() const
 
 template <typename T> Tensor<int> Tensor<T>::argmin() const
 {
+    if (this->numel() == 0)
+    {
+        throw std::invalid_argument("Can't call argmin on an empty tensor.");
+    }
+
     int index = 0;
     int argmin = -1;
     T min_value;
@@ -1560,6 +1575,11 @@ template <typename T> Tensor<int> Tensor<T>::argmin() const
 
 template <typename T> Tensor<T> Tensor<T>::min() const
 {
+    if (this->numel() == 0)
+    {
+        throw std::invalid_argument("Can't call min on an empty tensor.");
+    }
+
     T min_value;
     int data_argmin = -1;
 
@@ -1608,6 +1628,11 @@ template <typename T> Tensor<T> Tensor<T>::mean() const
 
 template <typename T> Tensor<T> Tensor<T>::var(const std::vector<int> &dim, bool keep_dim) const
 {
+    if (this->numel() == 0)
+    {
+        throw std::invalid_argument("Can't call var on an empty tensor.");
+    }
+
     Tensor<T> mean = this->mean(dim, true);
     Tensor<T> diff = *this - mean;
     Tensor<T> squared_diff = diff * diff;
@@ -1624,6 +1649,11 @@ template <typename T> Tensor<T> Tensor<T>::var(const std::vector<int> &dim, bool
 
 template <typename T> Tensor<T> Tensor<T>::var() const
 {
+    if (this->numel() == 0)
+    {
+        throw std::invalid_argument("Can't call var on an empty tensor.");
+    }
+
     Tensor<T> mean = this->mean();
     Tensor<T> diff = *this - mean;
     Tensor<T> squared_diff = diff * diff;
