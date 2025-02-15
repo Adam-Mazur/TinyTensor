@@ -7,6 +7,7 @@
 #include <random>
 #include <stack>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <unordered_set>
 #include <vector>
@@ -288,11 +289,13 @@ template <typename T> T &Tensor<T>::operator[](const std::vector<int> &indices) 
 {
     if (data == nullptr)
     {
-        throw std::invalid_argument("The tensor data is null.");
+        throw std::logic_error("The tensor data is null.");
     }
     if (indices.size() != strides.size())
     {
-        throw std::invalid_argument("The number of indices doesn't match the shape of the tensor.");
+        throw std::invalid_argument("The number of indices (" + std::to_string(indices.size()) +
+                                    ") doesn't match the number of dimensions of the tensor (" +
+                                    std::to_string(strides.size()) + ").");
     }
     if (!std::equal(indices.begin(), indices.end(), shape.begin(), [](int a, int b) { return a < b; }))
     {
@@ -325,11 +328,13 @@ template <typename T> Tensor<T> Tensor<T>::operator[](const std::vector<std::pai
 {
     if (data == nullptr)
     {
-        throw std::invalid_argument("The tensor data is null.");
+        throw std::logic_error("The tensor data is null.");
     }
     if (indices.size() > strides.size())
     {
-        throw std::invalid_argument("The number of indices doesn't match the shape of the tensor.");
+        throw std::invalid_argument("The number of indices (" + std::to_string(indices.size()) +
+                                    ") doesn't match the number of dimensions of the tensor (" +
+                                    std::to_string(strides.size()) + ").");
     }
 
     std::vector<std::pair<int, int>> new_indices(indices.begin(), indices.end());
@@ -364,11 +369,6 @@ template <typename T> Tensor<T> Tensor<T>::operator[](const std::vector<std::pai
             continue;
         new_tensor.shape.push_back(new_indices[i].second - new_indices[i].first);
         new_tensor.strides.push_back(strides[i]);
-    }
-
-    if (new_tensor.shape.size() == 0)
-    {
-        throw std::invalid_argument("The resulting vector can't have 0 dimensions.");
     }
 
     if (new_tensor.backward_enabled())
@@ -414,7 +414,7 @@ template <typename T> Tensor<T> Tensor<T>::view(const std::vector<int> &size) co
     {
         if (strides[i] != strides[i + 1] * shape[i + 1])
         {
-            throw std::invalid_argument("Can't call view on this tensor.");
+            throw std::logic_error("This tensor is not contiguous.");
         }
     }
 
@@ -431,18 +431,18 @@ template <typename T> Tensor<T> Tensor<T>::view(const std::vector<int> &size) co
         }
         else if (size[i] == -1)
         {
-            throw std::invalid_argument("Can't have two minus ones.");
+            throw std::invalid_argument("Can't use -1 for more than one dimension.");
         }
         num_of_elements *= size[i];
     }
 
     if (full && (num_of_elements != data_size))
     {
-        throw std::invalid_argument("The number of elements doesn't match.");
+        throw std::invalid_argument("The provided shape doesn't match the number of elements in the tensor.");
     }
     if (!full && (num_of_elements > data_size || data_size % num_of_elements != 0))
     {
-        throw std::invalid_argument("Can't create a tensor of this shape.");
+        throw std::invalid_argument("Can't reshape the tensor to the provided shape.");
     }
 
     std::vector<int> new_size(size.begin(), size.end());
@@ -484,11 +484,12 @@ template <typename T> Tensor<T> Tensor<T>::transpose(int dim0, int dim1) const
 {
     if (dim0 < 0 || dim0 >= shape.size() || dim1 < 0 || dim1 >= shape.size())
     {
-        throw std::invalid_argument("Dimensions out of range.");
+        throw std::out_of_range("The provided dimensions (" + std::to_string(dim0) + ", " + std::to_string(dim1) +
+                                ") are out of range (0 to " + std::to_string(shape.size()) + ").");
     }
     if (dim0 == dim1)
     {
-        throw std::invalid_argument("The dimensions can't be equal.");
+        throw std::invalid_argument("dim0 can't be equal to dim1.");
     }
 
     Tensor<T> new_tensor = Tensor<T>(*this);
@@ -585,15 +586,15 @@ template <typename T> void Tensor<T>::backward()
 {
     if (grad == nullptr)
     {
-        throw std::invalid_argument("Can't call backward on a tensor without a gradient.");
+        throw std::logic_error("Can't call backward on a tensor without a gradient.");
     }
     if (_backward == nullptr)
     {
-        throw std::invalid_argument("Can't call backward on a tensor that is not a result of a computation.");
+        throw std::logic_error("Can't call backward on a tensor that is not a result of a computation.");
     }
     if (shape != std::vector<int>({1}))
     {
-        throw std::invalid_argument("Can't call backward on a tensor with more than one element.");
+        throw std::logic_error("Can't call backward on a tensor with more than one element.");
     }
 
     std::vector<Tensor<T> *> topo;
@@ -704,7 +705,7 @@ Tensor<T> Tensor<T>::broadcast(const Tensor<T> &t1, const Tensor<T> &t2, Op op)
         }
         if (t1_shape[i] != t2_shape[i])
         {
-            throw std::invalid_argument("Those shapes are not broadcastable.");
+            throw std::invalid_argument("The shapes of the two tensors are not broadcastable.");
         }
         new_shape[i] = t1_shape[i];
     }
@@ -930,7 +931,6 @@ template <typename T> Tensor<T> Tensor<T>::operator-() const
         *it = -(*it);
     }
 
-
     if (new_tensor.backward_enabled())
     {
         new_tensor._backward = &Tensor<T>::minus_backward;
@@ -1142,7 +1142,10 @@ template <typename T> Tensor<T> &Tensor<T>::operator+=(const Tensor<T> &other)
     }
     else if (other_shape.size() > this->shape.size())
     {
-        throw std::invalid_argument("In-place operations are not supported for tensors with those shapes.");
+        throw std::invalid_argument("The number of dimensions of the first operand (" +
+                                    std::to_string(this->shape.size()) +
+                                    ") doesn't match the number of dimensions of the second operand (" +
+                                    std::to_string(other.shape.size()) + ").");
     }
 
     for (int i = this->shape.size() - 1; i >= 0; i--)
@@ -1153,7 +1156,7 @@ template <typename T> Tensor<T> &Tensor<T>::operator+=(const Tensor<T> &other)
         }
         if (other_shape[i] != 1 && this->shape[i] != other_shape[i])
         {
-            throw std::invalid_argument("Those shapes are not broadcastable.");
+            throw std::invalid_argument("The shapes of the two tensors are not broadcastable.");
         }
     }
 
@@ -1237,7 +1240,8 @@ template <typename T> Tensor<T> Tensor<T>::sum(const std::vector<int> &dim, bool
     {
         if (i < 0 || i >= shape.size())
         {
-            throw std::invalid_argument("Dimension out of range.");
+            throw std::out_of_range("One of the given dimensions (" + std::to_string(i) + "th dimension) is out of range (0 to " +
+                                    std::to_string(shape.size()) + ").");
         }
     }
 
@@ -1789,8 +1793,9 @@ template <typename T> Tensor<T> Tensor<T>::mm(const Tensor &t1, const Tensor &t2
     }
     if (t1.shape[1] != t2.shape[0])
     {
-        throw std::invalid_argument(
-            "The number of columns of the first tensor must be equal to the number of rows of the second tensor.");
+        throw std::invalid_argument("The number of columns of the first tensor (" + std::to_string(t1.shape[1]) +
+                                    ") must be equal to the number of rows of the second tensor (" +
+                                    std::to_string(t2.shape[0]) + ").");
     }
 
     Tensor<T> new_tensor;
@@ -1896,7 +1901,7 @@ template <typename T> Tensor<T> Tensor<T>::matmul(const Tensor<T> &t1, const Ten
 
         if (t1_shape[i] != t2_shape[i])
         {
-            throw std::invalid_argument("Those shapes are not broadcastable.");
+            throw std::invalid_argument("The shapes of the two tensors are not broadcastable.");
         }
         new_shape[i] = t1_shape[i];
     }
@@ -2097,7 +2102,8 @@ template <typename T> Tensor<T> Tensor<T>::stack(const std::vector<Tensor<T>> te
     {
         if (tensors[i].shape != shape)
         {
-            throw std::invalid_argument("All tensors must have the same shape.");
+            throw std::logic_error("All tensors must have the same shape. The " + std::to_string(i) +
+                                   "th tensor doesn't match to the rest.");
         }
     }
 
