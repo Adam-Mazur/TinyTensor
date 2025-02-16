@@ -252,9 +252,10 @@ template <typename T> Tensor<T> Tensor<T>::xavier_normal(const std::vector<int> 
     std::normal_distribution<T> distribution(static_cast<T>(0), static_cast<T>(std));
     Tensor<T> tensor = Tensor<T>(size, static_cast<T>(0), requires_grad);
 
-    for (int i = 0; i < tensor.data->size(); i++)
+    auto end = tensor.end();
+    for (auto it = tensor.begin(); it != end; ++it)
     {
-        (*tensor.data)[i] = distribution(generator);
+        *it = distribution(generator);
     }
 
     return tensor;
@@ -267,9 +268,10 @@ template <typename T> Tensor<T> Tensor<T>::kaiming_normal(const std::vector<int>
     std::normal_distribution<T> distribution(static_cast<T>(0), static_cast<T>(std));
     Tensor<T> tensor = Tensor<T>(size, static_cast<T>(0), requires_grad);
 
-    for (int i = 0; i < tensor.data->size(); i++)
+    auto end = tensor.end();
+    for (auto it = tensor.begin(); it != end; ++it)
     {
-        (*tensor.data)[i] = distribution(generator);
+        *it = distribution(generator);
     }
 
     return tensor;
