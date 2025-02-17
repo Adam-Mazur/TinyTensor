@@ -48,6 +48,9 @@ template <typename T> class Tensor
 
     bool backward_enabled() const;
 
+    void set_backward(std::function<void(Tensor *)> grad_fn, const Tensor<T> *op1 = nullptr,
+                      const Tensor<T> *op2 = nullptr);
+
     void add_backward();
 
     void sub_backward();
@@ -219,12 +222,12 @@ template <typename T> class Tensor
     // This is to allow const Tensor to use the non-const begin() and end() functions.
     const Iterator begin() const
     {
-        return const_cast<Tensor<T> &>(*this).begin(); 
+        return const_cast<Tensor<T> &>(*this).begin();
     }
 
     const Iterator end() const
     {
-        return const_cast<Tensor<T> &>(*this).end(); 
+        return const_cast<Tensor<T> &>(*this).end();
     }
 
     Tensor view(const std::vector<int> &size) const;

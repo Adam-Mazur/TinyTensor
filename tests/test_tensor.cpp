@@ -3364,3 +3364,23 @@ TEST_CASE("Iterating over a tensor with a range-based loop works correctly")
         REQUIRE(result == std::vector<float>({1, 4, 2, 5, 3, 6}));
     }
 }
+
+TEST_CASE("Autograd works when the tensors were initialized as a result of a computation")
+{
+    Tensor<float> t1 = Tensor<float>::ones({4, 4}, true) / 10;
+    Tensor<float> t2 = Tensor<float>::ones({4, 4}, true) / 10;
+    Tensor<float> t3 = t1 * t2;
+    Tensor<float> t4 = t3.sum();
+    t4.backward();
+    Tensor<float> t5 = t1 * t2;
+    Tensor<float> t6 = t5.sum();
+    t6.backward();
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            REQUIRE_THAT(((*t1.grad)[{i, j}]), Catch::Matchers::WithinAbs(0.2f, 0.01f));
+            REQUIRE_THAT(((*t2.grad)[{i, j}]), Catch::Matchers::WithinAbs(0.2f, 0.01f));
+        }
+    }
+}
