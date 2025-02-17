@@ -1,3 +1,19 @@
+/**
+This demo showcases a simple convolutional neural network implemented using a
+custom tensor object for a binarized version of the MNIST dataset.
+The network consists of three convolutional layers followed by two fully connected layers.
+Training is performed using cross-entropy loss and optimized with gradient descent.
+
+The demo measures the average training time per iteration and evaluates the final model's
+accuracy on the test set, which typically achieves around 99% accuracy.
+
+To get started, download the training and test data by running:
+
+    python3 download_data.py
+
+This script will retrieve the necessary binary files and place them in the correct directory.
+*/
+
 #include "../include/tensor.h"
 #include <chrono>
 #include <fstream>
@@ -85,25 +101,13 @@ int main()
     auto [train_images, train_labels] = load_mnist(TRAIN_DATA_PATH, TRAIN_DATA_LEN);
     auto [test_images, test_labels] = load_mnist(TEST_DATA_PATH, TEST_DATA_LEN);
 
-    Tensor<float> w1 = Tensor<float>::randn({16, 1, 3, 3}, true);
-    Tensor<float> w2 = Tensor<float>::randn({32, 16, 3, 3}, true);
-    Tensor<float> w3 = Tensor<float>::randn({64, 32, 3, 3}, true);
-    Tensor<float> w4 = Tensor<float>::randn({64 * 4 * 4, 128}, true);
-    Tensor<float> w5 = Tensor<float>::randn({128, 2}, true);
-    Tensor<float> b1 = Tensor<float>::randn({128}, true);
-    Tensor<float> b2 = Tensor<float>::randn({2}, true);
-
-    {
-        // Scale down the weights to prevent overflow
-        NoGradGuard no_grad;
-        w1 = w1 / 10.0;
-        w2 = w2 / 10.0;
-        w3 = w3 / 10.0;
-        w4 = w4 / 10.0;
-        w5 = w5 / 10.0;
-        b1 = b1 / 10.0;
-        b2 = b2 / 10.0;
-    }
+    Tensor<float> w1 = Tensor<float>::randn({16, 1, 3, 3}, true) / 10.0;
+    Tensor<float> w2 = Tensor<float>::randn({32, 16, 3, 3}, true) / 10.0;
+    Tensor<float> w3 = Tensor<float>::randn({64, 32, 3, 3}, true) / 10.0;
+    Tensor<float> w4 = Tensor<float>::randn({64 * 4 * 4, 128}, true) / 10.0;
+    Tensor<float> w5 = Tensor<float>::randn({128, 2}, true) / 10.0;
+    Tensor<float> b1 = Tensor<float>::randn({128}, true) / 10.0;
+    Tensor<float> b2 = Tensor<float>::randn({2}, true) / 10.0;
 
     // ========================================================
     // SECTION: Training
