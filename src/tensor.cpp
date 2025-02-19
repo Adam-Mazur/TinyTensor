@@ -3,6 +3,7 @@
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <numeric>
 #include <random>
 #include <stack>
@@ -1224,12 +1225,17 @@ template <typename T> Tensor<T> &Tensor<T>::operator+=(const Tensor<T> &other)
 
 template <typename T> Tensor<T> Tensor<T>::sum() const
 {
+    // Kahan summation algorithm
     T sum = static_cast<T>(0);
+    T c = static_cast<T>(0);
 
     auto end = this->end();
     for (auto it = this->begin(); it != end; ++it)
     {
-        sum += *it;
+        T y = *it - c;
+        T t = sum + y;
+        c = (t - sum) - y;
+        sum = t;
     }
 
     Tensor<T> new_tensor = Tensor<T>({sum}, this->grad != nullptr);
@@ -1909,7 +1915,7 @@ template <typename T> Tensor<T> Tensor<T>::sigmoid(const Tensor<T> &t)
 
 template <typename T> Tensor<T> Tensor<T>::softmax(const Tensor<T> &t, int dim)
 {
-    Tensor<T> temp1 = t.max();
+    Tensor<T> temp1 = t.max(dim, true);
     Tensor<T> temp2 = t - temp1;
     Tensor<T> temp3 = temp2.exp();
     Tensor<T> temp4 = temp3.sum({dim}, true);
@@ -1922,8 +1928,10 @@ template <typename T> Tensor<T> Tensor<T>::softmax(const Tensor<T> &t, int dim)
 
 template <typename T> Tensor<T> Tensor<T>::cross_entropy(const Tensor<T> &input, const Tensor<int> &target)
 {
-    Tensor<T> softmax_output = Tensor<T>::softmax(input, 1);
-    Tensor<T> log_softmax_output = softmax_output.log();
+    // Log-sum-exp trick to avoid numerical instability
+    T eps = std::numeric_limits<T>::epsilon();
+    Tensor<T> max_per_row = input.max(1, true);
+    Tensor<T> log_softmax_output = input - max_per_row - ((input - max_per_row).exp().sum({1}, true) + eps).log();
     Tensor<T> log_probs = Tensor<T>::zeros({input.shape[0]});
 
     for (int i = 0; i < input.shape[0]; i++)

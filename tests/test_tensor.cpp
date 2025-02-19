@@ -3595,3 +3595,49 @@ TEST_CASE("Autograd works when the tensors were initialized as a result of a com
         }
     }
 }
+
+TEST_CASE("Tensor methods are numerically stable")
+{
+    SECTION("The sum method (without any arguments) is numerically stable")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 5e-8, 5e-8});
+        Tensor<float> result = t1.sum();
+        REQUIRE(result[{0}] == 1.0000001f);
+    }
+
+    SECTION("The cross entropy loss is numerically stable")
+    {
+        Tensor<float> t1 = Tensor<float>({0.1, 1.0, 1000}).view({1, -1});
+        Tensor<int> t2 = Tensor<int>({0});
+        Tensor<float> result = Tensor<float>::cross_entropy(t1, t2);
+        REQUIRE(result[{0}] == 999.9000f);
+
+        Tensor<float> t3 = Tensor<float>::randn({3, 5}) / 1e8;
+        Tensor<int> t4 = Tensor<int>({0, 1, 2});
+        Tensor<float> result2 = Tensor<float>::cross_entropy(t3, t4);
+
+        REQUIRE_THAT(result2[{0}], Catch::Matchers::WithinAbs(1.6094f, 1e-4));
+
+        Tensor<float> t5 = Tensor<float>({10000.0, 10001.0}).view({1, -1});
+        Tensor<int> t6 = Tensor<int>({1});
+        Tensor<float> result3 = Tensor<float>::cross_entropy(t5, t6);
+
+        REQUIRE_THAT(result3[{0}], Catch::Matchers::WithinAbs(0.3133f, 1e-4));
+
+        Tensor<float> t7 =
+            Tensor<float>({8530.42, 15211.1, 11552.5, 13532.5, 3647.46, 2515.49, 23353.4, 8995.34, 6455.24, 2795.52,
+                           22289.6, 5446.17, 14985.7, 5910.1,  9445.88, 3176.8,  23530.7, 15174.2, 19507.2, 3091.08})
+                .view({10, -1});
+
+        Tensor<int> t8 = Tensor<int>({0, 1, 1, 0, 1, 0, 1, 1, 0, 0});
+
+        Tensor<float> result4 = Tensor<float>::cross_entropy(t7, t8);
+        REQUIRE_FALSE(std::isnan(result4[{0}]));
+        REQUIRE_THAT(result4[{0}], Catch::Matchers::WithinAbs(2681.7051f, 1e-4));
+
+        Tensor<float> t9 = Tensor<float>({1e-5, 1e-6}).view({1, -1});
+        Tensor<int> t10 = Tensor<int>({1});
+        Tensor<float> result5 = Tensor<float>::cross_entropy(t9, t10);
+        REQUIRE_THAT(result5[{0}], Catch::Matchers::WithinAbs(0.6932f, 1e-4));
+    }
+}

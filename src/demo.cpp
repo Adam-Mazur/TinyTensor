@@ -34,7 +34,7 @@ This script will retrieve the necessary binary files and place them in the corre
 #define IMG_SIZE 28
 #define TEST_SIZE 1000
 #define BATCH_SIZE 32
-#define LEARNING_RATE 0.001
+#define LEARNING_RATE 0.0005
 
 // ========================================================
 // SECTION: Auxiliary functions
@@ -101,13 +101,13 @@ int main()
     auto [train_images, train_labels] = load_mnist(TRAIN_DATA_PATH, TRAIN_DATA_LEN);
     auto [test_images, test_labels] = load_mnist(TEST_DATA_PATH, TEST_DATA_LEN);
 
-    Tensor<float> w1 = Tensor<float>::randn({16, 1, 3, 3}, true) / 10.0;
-    Tensor<float> w2 = Tensor<float>::randn({32, 16, 3, 3}, true) / 10.0;
-    Tensor<float> w3 = Tensor<float>::randn({64, 32, 3, 3}, true) / 10.0;
-    Tensor<float> w4 = Tensor<float>::randn({64 * 4 * 4, 128}, true) / 10.0;
-    Tensor<float> w5 = Tensor<float>::randn({128, 2}, true) / 10.0;
-    Tensor<float> b1 = Tensor<float>::randn({128}, true) / 10.0;
-    Tensor<float> b2 = Tensor<float>::randn({2}, true) / 10.0;
+    Tensor<float> w1 = Tensor<float>::randn({16, 1, 3, 3}, true);
+    Tensor<float> w2 = Tensor<float>::randn({32, 16, 3, 3}, true);
+    Tensor<float> w3 = Tensor<float>::randn({64, 32, 3, 3}, true);
+    Tensor<float> w4 = Tensor<float>::randn({64 * 4 * 4, 128}, true);
+    Tensor<float> w5 = Tensor<float>::randn({128, 2}, true);
+    Tensor<float> b1 = Tensor<float>::randn({128}, true);
+    Tensor<float> b2 = Tensor<float>::randn({2}, true);
 
     // ========================================================
     // SECTION: Training
@@ -131,7 +131,7 @@ int main()
 
         Tensor<float> out = forward(x, w1, w2, w3, w4, w5, b1, b2);
         Tensor<float> loss = Tensor<float>::cross_entropy(out, y);
-
+        
         loss.backward();
 
         w1 += (*w1.grad) * (-LEARNING_RATE);
