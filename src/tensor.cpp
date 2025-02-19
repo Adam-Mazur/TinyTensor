@@ -125,6 +125,9 @@ Tensor<T>::Tensor()
 {
 }
 
+// Since random_engine is a static member, we need to define it outside the class.
+template <typename T> std::default_random_engine Tensor<T>::random_engine(std::random_device{}());
+
 // ========================================================
 // SECTION: Copy Operations
 // ========================================================
@@ -252,13 +255,12 @@ template <typename T> Tensor<T> Tensor<T>::ones(const std::vector<int> &size, bo
 
 template <typename T> Tensor<T> Tensor<T>::randn(const std::vector<int> &size, bool requires_grad)
 {
-    std::default_random_engine generator;
     std::normal_distribution<T> distribution(static_cast<T>(0), static_cast<T>(1));
     Tensor<T> tensor = Tensor<T>(size, static_cast<T>(0), requires_grad);
 
     for (int i = 0; i < tensor.data->size(); i++)
     {
-        (*tensor.data)[i] = distribution(generator);
+        (*tensor.data)[i] = distribution(random_engine);
     }
 
     return tensor;
@@ -266,7 +268,6 @@ template <typename T> Tensor<T> Tensor<T>::randn(const std::vector<int> &size, b
 
 template <typename T> Tensor<T> Tensor<T>::xavier_normal(const std::vector<int> &size, float gain, bool requires_grad)
 {
-    std::default_random_engine generator;
     float std = gain * std::sqrt(2.0 / (size[0] + size[1]));
     std::normal_distribution<T> distribution(static_cast<T>(0), static_cast<T>(std));
     Tensor<T> tensor = Tensor<T>(size, static_cast<T>(0), requires_grad);
@@ -274,7 +275,7 @@ template <typename T> Tensor<T> Tensor<T>::xavier_normal(const std::vector<int> 
     auto end = tensor.end();
     for (auto it = tensor.begin(); it != end; ++it)
     {
-        *it = distribution(generator);
+        *it = distribution(random_engine);
     }
 
     return tensor;
@@ -282,7 +283,6 @@ template <typename T> Tensor<T> Tensor<T>::xavier_normal(const std::vector<int> 
 
 template <typename T> Tensor<T> Tensor<T>::kaiming_normal(const std::vector<int> &size, bool requires_grad)
 {
-    std::default_random_engine generator;
     float std = std::sqrt(2.0 / (size[0]));
     std::normal_distribution<T> distribution(static_cast<T>(0), static_cast<T>(std));
     Tensor<T> tensor = Tensor<T>(size, static_cast<T>(0), requires_grad);
@@ -290,7 +290,7 @@ template <typename T> Tensor<T> Tensor<T>::kaiming_normal(const std::vector<int>
     auto end = tensor.end();
     for (auto it = tensor.begin(); it != end; ++it)
     {
-        *it = distribution(generator);
+        *it = distribution(random_engine);
     }
 
     return tensor;

@@ -4,6 +4,7 @@
 #include <numeric>
 #include <utility>
 #include <vector>
+#include <random>
 
 template <typename T> struct TensorData
 {
@@ -31,6 +32,8 @@ template <typename T> class Tensor
     Tensor<T> *operand1;
     Tensor<T> *operand2;
     std::function<void(Tensor *)> _backward;
+
+    static std::default_random_engine random_engine;
 
     void add_reference();
 
