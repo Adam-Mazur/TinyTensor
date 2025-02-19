@@ -1564,6 +1564,100 @@ template <typename T> Tensor<T> Tensor<T>::max() const
     return new_tensor;
 }
 
+template <typename T> Tensor<T> Tensor<T>::max(int dim, bool keep_dim) const
+{
+    if (this->numel() == 0)
+    {
+        throw std::invalid_argument("Can't call max on an empty tensor.");
+    }
+
+    if (dim < 0 || dim >= shape.size())
+    {
+        throw std::out_of_range("The given dim (" + std::to_string(dim) + ") is out of the range (0 to " +
+                                std::to_string(shape.size()) + ").");
+    }
+
+    std::vector<int> new_shape(shape.begin(), shape.end());
+
+    new_shape[dim] = 1;
+
+    Tensor<T> new_tensor = Tensor<T>(new_shape, std::numeric_limits<T>::min(), this->grad != nullptr);
+
+    // This must be Tensor<T> not Tensor<int> because otherwise we wouldn't
+    // be able to access it's private fields (unless T = int).
+    Tensor<T> max_indices = Tensor<T>::zeros(new_shape);
+
+    std::vector<int> strides_new = new_tensor.strides;
+
+    // Setting the stride equal to 0 will make sure that the corresponding
+    // dimension in the new tensor will be reduced.
+    strides_new[dim] = 0;
+
+    int index_old = offset;
+    int index_new = 0;
+    std::vector<int> indices(shape.size(), 0);
+    int num_of_elements = this->numel();
+
+    for (int i = 0; i < num_of_elements; i++)
+    {
+        if ((*this->data)[index_old] > (*new_tensor.data)[index_new])
+        {
+            (*new_tensor.data)[index_new] = (*this->data)[index_old];
+            (*max_indices.data)[index_new] = index_old;
+        }
+
+        for (int j = indices.size() - 1; j >= 0; j--)
+        {
+            indices[j]++;
+            index_old += strides[j];
+            index_new += strides_new[j];
+            if (indices[j] == shape[j])
+            {
+                indices[j] = 0;
+                index_old -= shape[j] * strides[j];
+                index_new -= new_shape[j] * strides_new[j];
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    if (!keep_dim)
+    {
+        std::vector<int> final_shape(new_shape.begin(), new_shape.end());
+        final_shape.erase(final_shape.begin() + dim);
+
+        new_tensor = new_tensor.view(final_shape);
+        max_indices = max_indices.view(final_shape);
+    }
+
+    if (new_tensor.backward_enabled())
+    {
+        new_tensor.set_backward(std::bind(&Tensor<T>::max_and_min_backward, std::placeholders::_1, max_indices), this);
+    }
+
+    return new_tensor;
+}
+
+template <typename T> void Tensor<T>::max_and_min_backward(const Tensor<T> &indices)
+{
+    if (this->grad == nullptr)
+    {
+        std::invalid_argument("Can't call backward if the gradient is nullptr.");
+    }
+
+    if (operand1->grad != nullptr)
+    {
+        auto end = indices.end();
+        for (auto it = indices.begin(); it != end; ++it)
+        {
+            (*operand1->grad->data)[static_cast<int>(*it)] += (*this->grad->data)[it.data_index];
+        }
+    }
+}
+
 template <typename T> Tensor<int> Tensor<T>::argmin() const
 {
     if (this->numel() == 0)
@@ -1623,6 +1717,83 @@ template <typename T> Tensor<T> Tensor<T>::min() const
         new_tensor.grad->strides = new_tensor.strides;
         new_tensor.grad->offset = new_tensor.offset;
         new_tensor.set_backward([](Tensor<T> *) {}, this);
+    }
+
+    return new_tensor;
+}
+
+template <typename T> Tensor<T> Tensor<T>::min(int dim, bool keep_dim) const
+{
+    if (this->numel() == 0)
+    {
+        throw std::invalid_argument("Can't call min on an empty tensor.");
+    }
+
+    if (dim < 0 || dim >= shape.size())
+    {
+        throw std::out_of_range("The given dim (" + std::to_string(dim) + ") is out of the range (0 to " +
+                                std::to_string(shape.size()) + ").");
+    }
+
+    std::vector<int> new_shape(shape.begin(), shape.end());
+
+    new_shape[dim] = 1;
+
+    Tensor<T> new_tensor = Tensor<T>(new_shape, std::numeric_limits<T>::max(), this->grad != nullptr);
+
+    // This must be Tensor<T> not Tensor<int> because otherwise we wouldn't
+    // be able to access it's private fields (unless T = int).
+    Tensor<T> min_indices = Tensor<T>::zeros(new_shape);
+
+    std::vector<int> strides_new = new_tensor.strides;
+
+    // Setting the stride equal to 0 will make sure that the corresponding
+    // dimension in the new tensor will be reduced.
+    strides_new[dim] = 0;
+
+    int index_old = offset;
+    int index_new = 0;
+    std::vector<int> indices(shape.size(), 0);
+    int num_of_elements = this->numel();
+
+    for (int i = 0; i < num_of_elements; i++)
+    {
+        if ((*this->data)[index_old] < (*new_tensor.data)[index_new])
+        {
+            (*new_tensor.data)[index_new] = (*this->data)[index_old];
+            (*min_indices.data)[index_new] = index_old;
+        }
+
+        for (int j = indices.size() - 1; j >= 0; j--)
+        {
+            indices[j]++;
+            index_old += strides[j];
+            index_new += strides_new[j];
+            if (indices[j] == shape[j])
+            {
+                indices[j] = 0;
+                index_old -= shape[j] * strides[j];
+                index_new -= new_shape[j] * strides_new[j];
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    if (!keep_dim)
+    {
+        std::vector<int> final_shape(new_shape.begin(), new_shape.end());
+        final_shape.erase(final_shape.begin() + dim);
+
+        new_tensor = new_tensor.view(final_shape);
+        min_indices = min_indices.view(final_shape);
+    }
+
+    if (new_tensor.backward_enabled())
+    {
+        new_tensor.set_backward(std::bind(&Tensor<T>::max_and_min_backward, std::placeholders::_1, min_indices), this);
     }
 
     return new_tensor;

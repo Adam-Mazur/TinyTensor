@@ -676,7 +676,7 @@ TEST_CASE("Arithmetic operations work correctly")
             }
         }
     }
-    
+
     SECTION("Arithmetic operations on sliced tensors work correctly")
     {
 
@@ -944,7 +944,7 @@ TEST_CASE("The sum method with dimension and keep_dim works correctly")
     }
 }
 
-TEST_CASE("Basic functionality of autograd works correctly.") 
+TEST_CASE("Basic functionality of autograd works correctly.")
 {
     SECTION(".backward works for multiplication on 1 element tensor")
     {
@@ -1002,7 +1002,7 @@ TEST_CASE("Autograd works for higher dimensional tensors")
     SECTION(".backward works for multiplication for more complicated tensors")
     {
         Tensor<float> t1 = Tensor<float>({5, 4, 3, 2, 1, 0}, true).view({2, 3});
-        Tensor<float> t2 = Tensor<float>({0, 1, 2, 3, 4, 5}, true).view({2, 3}); 
+        Tensor<float> t2 = Tensor<float>({0, 1, 2, 3, 4, 5}, true).view({2, 3});
         Tensor<float> t3 = t1 * t2;
         Tensor<float> t4 = t3.sum();
         t4.backward();
@@ -1311,6 +1311,116 @@ TEST_CASE("The max method works correctly")
     }
 }
 
+TEST_CASE("The max method with dim and keep_dim works correctly")
+{
+    SECTION("Max along the first dimension")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
+        t1[{2, 3, 4}] = 10;
+        Tensor<float> t2 = t1.max(0, false);
+        REQUIRE(t2.size() == std::vector<int>({4, 5}));
+        REQUIRE(t2[{3, 4}] == 10);
+    }
+
+    SECTION("Max along the third dimension")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
+        t1[{2, 3, 4}] = 10;
+        Tensor<float> t2 = t1.max(2, false);
+        REQUIRE(t2.size() == std::vector<int>({3, 4}));
+        REQUIRE(t2[{2, 3}] == 10);
+    }
+
+    SECTION("Max along the first dimension with keep_dim")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
+        t1[{2, 3, 4}] = 10;
+        Tensor<float> t2 = t1.max(0, true);
+        REQUIRE(t2.size() == std::vector<int>({1, 4, 5}));
+        REQUIRE(t2[{0, 3, 4}] == 10);
+    }
+
+    SECTION("Max along the third dimension with keep_dim")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
+        t1[{2, 3, 4}] = 10;
+        Tensor<float> t2 = t1.max(2, true);
+        REQUIRE(t2.size() == std::vector<int>({3, 4, 1}));
+        REQUIRE(t2[{2, 3, 0}] == 10);
+    }
+
+    SECTION("Max along a dimension with mixed values")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5, -6}).view({2, 2, 3});
+        Tensor<float> t2 = t1.max(0, false);
+        REQUIRE(t2.size() == std::vector<int>({2, 3}));
+        REQUIRE(t2[{0, 0}] == 1);
+        REQUIRE(t2[{0, 1}] == 2);
+        REQUIRE(t2[{0, 2}] == 3);
+        REQUIRE(t2[{1, 0}] == 4);
+        REQUIRE(t2[{1, 1}] == 5);
+        REQUIRE(t2[{1, 2}] == 6);
+    }
+
+    SECTION("Max with mixed values and keepdim")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5, -6}).view({2, 2, 3});
+        Tensor<float> t2 = t1.max(0, true);
+        REQUIRE(t2.size() == std::vector<int>({1, 2, 3}));
+        REQUIRE(t2[{0, 0, 0}] == 1);
+        REQUIRE(t2[{0, 0, 1}] == 2);
+        REQUIRE(t2[{0, 0, 2}] == 3);
+        REQUIRE(t2[{0, 1, 0}] == 4);
+        REQUIRE(t2[{0, 1, 1}] == 5);
+        REQUIRE(t2[{0, 1, 2}] == 6);
+    }
+
+    SECTION("Max throws an error for an empty tensor")
+    {
+        Tensor<float> t1 = Tensor<float>();
+        REQUIRE_THROWS(t1.max(0, false));
+    }
+
+    SECTION("Max throws an error when dim is out of bounds")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
+        REQUIRE_THROWS(t1.max(3, false));
+        REQUIRE_THROWS(t1.max(-1, false));
+    }
+
+    SECTION("Autograd works for max with dim and keep_dim=false")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 3}, true);
+        t1[{2, 1}] = 5;
+        Tensor<float> t2 = t1.max(0, false);
+        Tensor<float> t3 = t2.sum();
+        t3.backward();
+        REQUIRE((*t1.grad)[{0, 0}] == 1);
+        REQUIRE((*t1.grad)[{2, 1}] == 1);
+        REQUIRE((*t1.grad)[{0, 2}] == 1);
+        REQUIRE((*t1.grad)[{0, 1}] == 0);
+        REQUIRE((*t1.grad)[{1, 0}] == 0);
+        REQUIRE((*t1.grad)[{1, 2}] == 0);
+        REQUIRE((*t1.grad)[{3, 1}] == 0);
+    }
+
+    SECTION("Autograd works for max with dim and keep_dim=true")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 3}, true);
+        t1[{2, 1}] = 5;
+        Tensor<float> t2 = t1.max(0, true);
+        Tensor<float> t3 = t2.sum();
+        t3.backward();
+        REQUIRE((*t1.grad)[{0, 0}] == 1);
+        REQUIRE((*t1.grad)[{2, 1}] == 1);
+        REQUIRE((*t1.grad)[{0, 2}] == 1);
+        REQUIRE((*t1.grad)[{0, 1}] == 0);
+        REQUIRE((*t1.grad)[{1, 0}] == 0);
+        REQUIRE((*t1.grad)[{1, 2}] == 0);
+        REQUIRE((*t1.grad)[{3, 1}] == 0);
+    }
+}
+
 TEST_CASE("The min method works correctly")
 {
     SECTION("Min of a 1D tensor")
@@ -1361,6 +1471,116 @@ TEST_CASE("The min method works correctly")
     {
         Tensor<float> t1 = Tensor<float>();
         REQUIRE_THROWS(t1.min());
+    }
+}
+
+TEST_CASE("The min method with dim and keep_dim works correctly")
+{
+    SECTION("Min along the first dimension")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
+        t1[{2, 3, 4}] = -10;
+        Tensor<float> t2 = t1.min(0, false);
+        REQUIRE(t2.size() == std::vector<int>({4, 5}));
+        REQUIRE(t2[{3, 4}] == -10);
+    }
+
+    SECTION("Min along the third dimension")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
+        t1[{2, 3, 4}] = -10;
+        Tensor<float> t2 = t1.min(2, false);
+        REQUIRE(t2.size() == std::vector<int>({3, 4}));
+        REQUIRE(t2[{2, 3}] == -10);
+    }
+
+    SECTION("Min along the first dimension with keep_dim")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
+        t1[{2, 3, 4}] = -10;
+        Tensor<float> t2 = t1.min(0, true);
+        REQUIRE(t2.size() == std::vector<int>({1, 4, 5}));
+        REQUIRE(t2[{0, 3, 4}] == -10);
+    }
+
+    SECTION("Min along the third dimension with keep_dim")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
+        t1[{2, 3, 4}] = -10;
+        Tensor<float> t2 = t1.min(2, true);
+        REQUIRE(t2.size() == std::vector<int>({3, 4, 1}));
+        REQUIRE(t2[{2, 3, 0}] == -10);
+    }
+
+    SECTION("Min along a dimension with mixed values")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5, -6}).view({2, 2, 3});
+        Tensor<float> t2 = t1.min(0, false);
+        REQUIRE(t2.size() == std::vector<int>({2, 3}));
+        REQUIRE(t2[{0, 0}] == -1);
+        REQUIRE(t2[{0, 1}] == -2);
+        REQUIRE(t2[{0, 2}] == -3);
+        REQUIRE(t2[{1, 0}] == -4);
+        REQUIRE(t2[{1, 1}] == -5);
+        REQUIRE(t2[{1, 2}] == -6);
+    }
+
+    SECTION("Min with mixed values and keepdim")
+    {
+        Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5, -6}).view({2, 2, 3});
+        Tensor<float> t2 = t1.min(0, true);
+        REQUIRE(t2.size() == std::vector<int>({1, 2, 3}));
+        REQUIRE(t2[{0, 0, 0}] == -1);
+        REQUIRE(t2[{0, 0, 1}] == -2);
+        REQUIRE(t2[{0, 0, 2}] == -3);
+        REQUIRE(t2[{0, 1, 0}] == -4);
+        REQUIRE(t2[{0, 1, 1}] == -5);
+        REQUIRE(t2[{0, 1, 2}] == -6);
+    }
+
+    SECTION("Min throws an error for an empty tensor")
+    {
+        Tensor<float> t1 = Tensor<float>();
+        REQUIRE_THROWS(t1.min(0, false));
+    }
+
+    SECTION("Min throws an error when dim is out of bounds")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({3, 4, 5});
+        REQUIRE_THROWS(t1.min(3, false));
+        REQUIRE_THROWS(t1.min(-1, false));
+    }
+
+    SECTION("Autograd works for min with dim and keep_dim=false")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 3}, true);
+        t1[{2, 1}] = -5;
+        Tensor<float> t2 = t1.min(0, false);
+        Tensor<float> t3 = t2.sum();
+        t3.backward();
+        REQUIRE((*t1.grad)[{0, 0}] == 1);
+        REQUIRE((*t1.grad)[{2, 1}] == 1);
+        REQUIRE((*t1.grad)[{0, 2}] == 1);
+        REQUIRE((*t1.grad)[{0, 1}] == 0);
+        REQUIRE((*t1.grad)[{1, 0}] == 0);
+        REQUIRE((*t1.grad)[{1, 2}] == 0);
+        REQUIRE((*t1.grad)[{3, 1}] == 0);
+    }
+
+    SECTION("Autograd works for min with dim and keep_dim=true")
+    {
+        Tensor<float> t1 = Tensor<float>::ones({4, 3}, true);
+        t1[{2, 1}] = -5;
+        Tensor<float> t2 = t1.min(0, true);
+        Tensor<float> t3 = t2.sum();
+        t3.backward();
+        REQUIRE((*t1.grad)[{0, 0}] == 1);
+        REQUIRE((*t1.grad)[{2, 1}] == 1);
+        REQUIRE((*t1.grad)[{0, 2}] == 1);
+        REQUIRE((*t1.grad)[{0, 1}] == 0);
+        REQUIRE((*t1.grad)[{1, 0}] == 0);
+        REQUIRE((*t1.grad)[{1, 2}] == 0);
+        REQUIRE((*t1.grad)[{3, 1}] == 0);
     }
 }
 
@@ -1477,7 +1697,9 @@ TEST_CASE("The argmin method works correctly")
         Tensor<float> t1 = Tensor<float>::ones({5}) * 5;
         t1[{0}] = -10;
         t1[{4}] = -8;
-        Tensor<float> t2 = t1[{{1, 5},}];
+        Tensor<float> t2 = t1[{
+            {1, 5},
+        }];
         Tensor<int> t3 = t2.argmin();
         REQUIRE(t3[{0}] == 3);
     }
@@ -1635,7 +1857,7 @@ TEST_CASE("Autograd for the mean works correctly")
             }
         }
     }
-    
+
     SECTION(".backward works for mean with dim and keepdim")
     {
         Tensor<float> t1 = Tensor<float>::ones({4, 3}, true);
@@ -1811,7 +2033,7 @@ TEST_CASE("The sqrt method works correctly")
         REQUIRE(t2[{3}] == 4);
         REQUIRE(t2[{4}] == 5);
     }
-    
+
     SECTION("Autograd works for sqrt")
     {
         Tensor<float> t1 = Tensor<float>({1, 4, 9, 16, 25}, true);
@@ -1849,7 +2071,7 @@ TEST_CASE("The pow method works correctly")
         REQUIRE(t2[{3}] == 16);
         REQUIRE(t2[{4}] == 25);
     }
-    
+
     SECTION("Autograd works for pow with positive exponent")
     {
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5}, true);
@@ -1918,7 +2140,8 @@ TEST_CASE("The exp method works correctly")
         Tensor<float> t2 = t1.exp();
         Tensor<float> t3 = t2.sum();
         t3.backward();
-        std::vector<float> expected_grad = {std::exp(1.0f), std::exp(2.0f), std::exp(3.0f), std::exp(4.0f), std::exp(5.0f)};
+        std::vector<float> expected_grad = {std::exp(1.0f), std::exp(2.0f), std::exp(3.0f), std::exp(4.0f),
+                                            std::exp(5.0f)};
         for (int i = 0; i < 5; i++)
         {
             REQUIRE_THAT(((*t1.grad)[{i}]), Catch::Matchers::WithinRel(expected_grad[i], 0.01f));
@@ -1956,13 +2179,11 @@ TEST_CASE("The sigmoid method works correctly")
         Tensor<float> t2 = Tensor<float>::sigmoid(t1);
         Tensor<float> t3 = t2.sum();
         t3.backward();
-        std::vector<float> expected_grad = {
-            (1 / (1 + std::exp(-1.0f))) * (1 - (1 / (1 + std::exp(-1.0f)))),
-            (1 / (1 + std::exp(-2.0f))) * (1 - (1 / (1 + std::exp(-2.0f)))),
-            (1 / (1 + std::exp(-3.0f))) * (1 - (1 / (1 + std::exp(-3.0f)))),
-            (1 / (1 + std::exp(-4.0f))) * (1 - (1 / (1 + std::exp(-4.0f)))),
-            (1 / (1 + std::exp(-5.0f))) * (1 - (1 / (1 + std::exp(-5.0f))))
-        };
+        std::vector<float> expected_grad = {(1 / (1 + std::exp(-1.0f))) * (1 - (1 / (1 + std::exp(-1.0f)))),
+                                            (1 / (1 + std::exp(-2.0f))) * (1 - (1 / (1 + std::exp(-2.0f)))),
+                                            (1 / (1 + std::exp(-3.0f))) * (1 - (1 / (1 + std::exp(-3.0f)))),
+                                            (1 / (1 + std::exp(-4.0f))) * (1 - (1 / (1 + std::exp(-4.0f)))),
+                                            (1 / (1 + std::exp(-5.0f))) * (1 - (1 / (1 + std::exp(-5.0f))))};
         for (int i = 0; i < 5; i++)
         {
             REQUIRE_THAT(((*t1.grad)[{i}]), Catch::Matchers::WithinRel(expected_grad[i], 0.01f));
@@ -2801,8 +3022,7 @@ TEST_CASE("The unfold function works correctly")
             0, 1, 2, 3,  4,  0,  0, 0, 5, 6,  7,  8,  0, 0, 0, 9, 10, 11, 12, 0, 0, 0, 0, 0, 0,  0,  0,  0,
             0, 0, 0, 0,  0,  0,  0, 0, 0, 1,  2,  3,  4, 0, 0, 0, 5,  6,  7,  8, 0, 0, 0, 9, 10, 11, 12, 0,
             0, 0, 0, 0,  0,  0,  0, 0, 0, 0,  0,  0,  0, 0, 0, 0, 0,  0,  0,  0, 0, 0, 1, 2, 3,  4,  0,  0,
-            0, 5, 6, 7,  8,  0,  0, 0, 9, 10, 11, 12, 0, 0, 0, 0, 0,  0,  0,  0, 0, 0, 0, 0, 0,  0,  0,  0
-        };
+            0, 5, 6, 7,  8,  0,  0, 0, 9, 10, 11, 12, 0, 0, 0, 0, 0,  0,  0,  0, 0, 0, 0, 0, 0,  0,  0,  0};
 
         for (int j = 0; j < 4; j++)
         {
@@ -2833,13 +3053,11 @@ TEST_CASE("The unfold function works correctly")
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).view({1, 1, 3, 4});
         Tensor<float> result = Tensor<float>::unfold(t1, 3, 1, 1);
         REQUIRE(result.size() == std::vector<int>({1, 9, 12}));
-        std::vector<int> expected_result = {
-            0, 0,  0,  0,  0,  1, 2, 3, 0, 5, 6, 7, 0,  0,  0,  0,  1, 2, 3, 4, 5, 6,
-            7, 8,  0,  0,  0,  0, 2, 3, 4, 0, 6, 7, 8,  0,  0,  1,  2, 3, 0, 5, 6, 7,
-            0, 9,  10, 11, 1,  2, 3, 4, 5, 6, 7, 8, 9,  10, 11, 12, 2, 3, 4, 0, 6, 7,
-            8, 0,  10, 11, 12, 0, 0, 5, 6, 7, 0, 9, 10, 11, 0,  0,  0, 0, 5, 6, 7, 8,
-            9, 10, 11, 12, 0,  0, 0, 0, 6, 7, 8, 0, 10, 11, 12, 0,  0, 0, 0, 0
-        };
+        std::vector<int> expected_result = {0, 0,  0,  0,  0,  1, 2, 3, 0, 5, 6, 7, 0,  0,  0,  0,  1, 2, 3, 4, 5, 6,
+                                            7, 8,  0,  0,  0,  0, 2, 3, 4, 0, 6, 7, 8,  0,  0,  1,  2, 3, 0, 5, 6, 7,
+                                            0, 9,  10, 11, 1,  2, 3, 4, 5, 6, 7, 8, 9,  10, 11, 12, 2, 3, 4, 0, 6, 7,
+                                            8, 0,  10, 11, 12, 0, 0, 5, 6, 7, 0, 9, 10, 11, 0,  0,  0, 0, 5, 6, 7, 8,
+                                            9, 10, 11, 12, 0,  0, 0, 0, 6, 7, 8, 0, 10, 11, 12, 0,  0, 0, 0, 0};
 
         for (int j = 0; j < 9; j++)
         {
@@ -2872,22 +3090,15 @@ TEST_CASE("The unfold function works correctly")
         Tensor<float> result = Tensor<float>::unfold(t1, 3, 2, 1);
         REQUIRE(result.size() == std::vector<int>({1, 9, 30}));
         std::vector<int> expected_result = {
-            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  2,  3,  4,
-            0,  0,  5,  6,  7,  8,  0,  0,  9, 10, 11, 12,  0,  0,  0,  0,  0,  0,
-            0,  0,  0,  0,  0,  0,  0,  1,  2,  3,  4,  0,  0,  5,  6,  7,  8,  0,
-            0,  9, 10, 11, 12,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-            1,  2,  3,  4,  0,  0,  5,  6,  7,  8,  0,  0,  9, 10, 11, 12,  0,  0,
-            0,  0,  0,  0,  0,  0,  0,  0,  1,  2,  3,  4,  0,  0,  5,  6,  7,  8,
-            0,  0,  9, 10, 11, 12,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-            0,  1,  2,  3,  4,  0,  0,  5,  6,  7,  8,  0,  0,  9, 10, 11, 12,  0,
-            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  2,  3,  4,  0,  0,
-            5,  6,  7,  8,  0,  0,  9, 10, 11, 12,  0,  0,  0,  0,  0,  0,  0,  0,
-            0,  0,  1,  2,  3,  4,  0,  0,  5,  6,  7,  8,  0,  0,  9, 10, 11, 12,
-            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  2,  3,  4,  0,
-            0,  5,  6,  7,  8,  0,  0,  9, 10, 11, 12,  0,  0,  0,  0,  0,  0,  0,
-            0,  0,  0,  0,  0,  0,  1,  2,  3,  4,  0,  0,  5,  6,  7,  8,  0,  0,
-            9, 10, 11, 12,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-        };
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  1,  2,  3,  4,  0, 0,  5,  6,  7,  8,  0, 0,  9,  10, 11, 12,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,  2,  3,  4,  0,  0, 5,  6,  7,  8,  0,  0, 9,  10, 11, 12, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2,  3,  4,  0,  0,  5, 6,  7,  8,  0,  0,  9, 10, 11, 12, 0,  0,
+            0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0, 0,  5,  6,  7,  8,  0, 0,  9,  10, 11, 12, 0, 0,  0,  0,  0,  0,
+            0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0, 0, 5,  6,  7,  8,  0,  0, 9,  10, 11, 12, 0,  0, 0,  0,  0,  0,  0,
+            0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0, 0, 5, 6,  7,  8,  0,  0,  9, 10, 11, 12, 0,  0,  0, 0,  0,  0,  0,  0,
+            0, 0, 1, 2, 3, 4, 0, 0, 5, 6, 7, 8, 0, 0,  9,  10, 11, 12, 0, 0,  0,  0,  0,  0,  0, 0,  0,  0,  0,  0,
+            0, 1, 2, 3, 4, 0, 0, 5, 6, 7, 8, 0, 0, 9,  10, 11, 12, 0,  0, 0,  0,  0,  0,  0,  0, 0,  0,  0,  0,  0,
+            1, 2, 3, 4, 0, 0, 5, 6, 7, 8, 0, 0, 9, 10, 11, 12, 0,  0,  0, 0,  0,  0,  0,  0,  0, 0,  0,  0,  0,  0};
 
         for (int j = 0; j < 9; j++)
         {
@@ -2902,7 +3113,7 @@ TEST_CASE("The unfold function works correctly")
     {
         Tensor<float> t1 = Tensor<float>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, true).view({1, 1, 3, 4});
         Tensor<float> result = Tensor<float>::unfold(t1, 2, 2, 1);
-        Tensor<float> loss = result.sum(); 
+        Tensor<float> loss = result.sum();
         loss.backward();
         std::vector<float> expected_result = {4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4.};
 
@@ -3150,13 +3361,13 @@ TEST_CASE("Autograd works even if you reassing the result to the same variable")
                     else if ((k == 2 || k == 3) && (l == 2 || l == 3))
                     {
                         REQUIRE_THAT(((*weights.grad)[{i, 0, k, l}]), Catch::Matchers::WithinAbs(6272.0f, 0.01f));
-                    } else 
+                    }
+                    else
                     {
                         REQUIRE_THAT(((*weights.grad)[{i, 0, k, l}]), Catch::Matchers::WithinAbs(5824.0f, 0.01f));
                     }
                 }
             }
-        
         }
         for (int i = 0; i < 8; i++)
         {
@@ -3210,13 +3421,13 @@ TEST_CASE("Autograd works even if you reassing the result to the same variable")
                     else if ((k == 2 || k == 3) && (l == 2 || l == 3))
                     {
                         REQUIRE_THAT(((*weights.grad)[{i, 0, k, l}]), Catch::Matchers::WithinAbs(204800.0f, 0.01f));
-                    } else 
+                    }
+                    else
                     {
                         REQUIRE_THAT(((*weights.grad)[{i, 0, k, l}]), Catch::Matchers::WithinAbs(194560.0f, 0.01f));
                     }
                 }
             }
-        
         }
         for (int i = 0; i < 8; i++)
         {

@@ -73,6 +73,8 @@ template <typename T> class Tensor
 
     void log_backward();
 
+    void max_and_min_backward(const Tensor<T> &indices);
+
     void relu_backward();
 
     void cross_entropy_backward(int n, const std::vector<int> &target);
@@ -284,9 +286,13 @@ template <typename T> class Tensor
 
     Tensor max() const;
 
+    Tensor max(int dim, bool keep_dim) const;
+
     Tensor<int> argmin() const;
 
     Tensor min() const;
+
+    Tensor min(int dim, bool keep_dim) const;
 
     Tensor mean(const std::vector<int> &dim, bool keep_dim) const;
 
